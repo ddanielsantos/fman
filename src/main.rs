@@ -8,21 +8,21 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Default)]
 #[command(version, long_about = None)]
 struct Args {
     #[arg(short, long)]
-    path: String,
+    path: Option<String>,
 }
 
 #[derive(Debug, Default)]
 struct App {
-    path: String,
+    args: Args,
 }
 
 impl App {
     pub fn with_args(args: Args) -> Self {
-        Self { path: args.path }
+        Self { args }
     }
 
     pub fn run(&self, mut terminal: DefaultTerminal) -> Result<()> {
@@ -36,13 +36,14 @@ impl App {
     }
 
     fn draw(&self, frame: &mut Frame) {
-        let p = current_dir().expect("to get the current dir");
+        let c_dirr = current_dir()
+            .expect("should be able to get the current dir")
+            .into_os_string();
+        let c_dirr = c_dirr.to_str().expect("valid utf8 please");
 
-        frame.render_widget(
-            Paragraph::new(format!("{:?}", p.into_os_string())),
-            frame.area(),
-        );
-        frame.render_widget(Paragraph::new(self.path.as_str()), frame.area());
+        let path = self.args.path.as_deref().unwrap_or(c_dirr);
+
+        frame.render_widget(Paragraph::new(path), frame.area());
     }
 
     fn should_quit(&self) -> Result<bool> {
@@ -56,8 +57,8 @@ impl App {
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse();
     color_eyre::install()?;
+    let args = Args::parse();
     let terminal = ratatui::init();
     let app = App::with_args(args);
     let app_result = app.run(terminal).context("app loop failed");
