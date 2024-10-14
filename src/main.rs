@@ -64,19 +64,15 @@ impl App {
     }
 
     fn draw(&self, frame: &mut Frame) {
-        let c_dirr = current_dir().expect("idk").into_os_string();
-        let current_dir = c_dirr.to_str().expect("idk 2");
-        let path = self.args.path.as_deref().unwrap_or(current_dir);
+        let c_dirr = current_dir().unwrap().display().to_string();
+        let path = self.args.path.as_deref().unwrap_or(&c_dirr);
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
-        let path_content: Vec<String> = fs::read_dir(path)
-            .map(|rd| {
-                rd.filter_map(|e| e.ok())
-                    .filter_map(|e| e.path().to_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_else(|_| Vec::new());
+        let path_content: Vec<String> = get_content(path)
+            .into_iter()
+            .map(|de| de.path().display().to_string())
+            .collect();
 
         let left_block = Block::bordered().title(path);
         let list = List::new(path_content).block(left_block);
@@ -92,6 +88,12 @@ impl App {
             self.should_quit = true
         }
     }
+}
+
+fn get_content(path: &str) -> Vec<DirEntry> {
+    fs::read_dir(path)
+        .map(|rd| rd.filter_map(|e| e.ok()).collect())
+        .unwrap_or_else(|_| Vec::new())
 }
 
 fn main() -> Result<()> {
