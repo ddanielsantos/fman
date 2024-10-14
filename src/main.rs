@@ -63,21 +63,14 @@ impl App {
         Ok(())
     }
 
-    fn current_dir(&self) -> String {
-        let binding = current_dir()
-            .expect("should be able to get the current dir")
-            .into_os_string();
-        binding.into_string().expect("not to fail")
-    }
-
     fn draw(&self, frame: &mut Frame) {
-        let binding = self.current_dir();
-        let idk = binding.as_str();
-        let current_dir = self.args.path.as_deref().unwrap_or(idk);
+        let c_dirr = current_dir().expect("idk").into_os_string();
+        let current_dir = c_dirr.to_str().expect("idk 2");
+        let path = self.args.path.as_deref().unwrap_or(current_dir);
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
-        let current_dir_content: Vec<String> = fs::read_dir(current_dir)
+        let path_content: Vec<String> = fs::read_dir(path)
             .map(|rd| {
                 rd.filter_map(|e| e.ok())
                     .filter_map(|e| e.path().to_str().map(String::from))
@@ -85,8 +78,8 @@ impl App {
             })
             .unwrap_or_else(|_| Vec::new());
 
-        let left_block = Block::bordered().title(current_dir);
-        let list = List::new(current_dir_content).block(left_block);
+        let left_block = Block::bordered().title(path);
+        let list = List::new(path_content).block(left_block);
         frame.render_widget(list, left_rect);
         frame.render_widget(Block::bordered().title("content"), right);
     }
@@ -100,8 +93,6 @@ impl App {
         }
     }
 }
-
-// fn enter_dir() -> Result<()> {}
 
 fn main() -> Result<()> {
     color_eyre::install()?;
