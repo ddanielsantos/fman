@@ -64,8 +64,8 @@ impl App {
     }
 
     fn draw(&self, frame: &mut Frame) {
-        let c_dirr = current_dir().unwrap().display().to_string();
-        let path = self.args.path.as_deref().unwrap_or(&c_dirr);
+        let current_dir = current_dir().unwrap().display().to_string();
+        let path = self.args.path.as_deref().unwrap_or(&current_dir);
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
