@@ -4,12 +4,13 @@ use std::fs::{self, DirEntry};
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
 use ratatui::prelude::*;
-use ratatui::widgets::{List, ListItem};
+use ratatui::widgets::{List, ListState};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     widgets::Block,
     DefaultTerminal, Frame,
 };
+use style::palette::tailwind::SLATE;
 
 #[derive(Parser, Debug, Default)]
 #[command(version, long_about = None)]
@@ -22,6 +23,13 @@ struct Args {
 struct App {
     args: Args,
     should_quit: bool,
+    left_rect_list: EntriesList,
+}
+
+#[derive(Debug, Default)]
+struct EntriesList {
+    items: Vec<DirEntry>,
+    state: ListState,
 }
 
 enum Action {
@@ -35,20 +43,14 @@ enum Action {
     Move,
 }
 
-struct MyItem(DirEntry);
-
-impl From<&MyItem> for ListItem<'_> {
-    fn from(value: &MyItem) -> Self {
-        let a = format!("{:?}", value.0.path());
-        ListItem::new(a)
-    }
-}
+const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 
 impl App {
     pub fn with_args(args: Args) -> Self {
         Self {
             args,
             should_quit: false,
+            left_rect_list: EntriesList::default(),
         }
     }
 
@@ -63,7 +65,7 @@ impl App {
         Ok(())
     }
 
-    fn draw(&self, frame: &mut Frame) {
+    fn draw(&mut self, frame: &mut Frame) {
         let current_dir = current_dir().unwrap().display().to_string();
         let path = self.args.path.as_deref().unwrap_or(&current_dir);
 
@@ -75,8 +77,11 @@ impl App {
             .collect();
 
         let left_block = Block::bordered().title(path);
-        let list = List::new(path_content).block(left_block);
-        frame.render_widget(list, left_rect);
+        let list = List::new(path_content)
+            .block(left_block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
+        frame.render_stateful_widget(list, left_rect, &mut self.left_rect_list.state);
         frame.render_widget(Block::bordered().title("content"), right);
     }
 
@@ -84,9 +89,20 @@ impl App {
         if key.kind != KeyEventKind::Press {
             return;
         }
-        if let KeyCode::Char('q') = key.code {
-            self.should_quit = true
+        match key.code {
+            KeyCode::Char('q') => self.should_quit = true,
+            KeyCode::Up | KeyCode::Char('j') => self.move_up(),
+            KeyCode::Down | KeyCode::Char('k') => self.move_down(),
+            _ => (),
         }
+    }
+
+    fn move_up(&mut self) {
+        self.left_rect_list.state.select_previous()
+    }
+
+    fn move_down(&mut self) {
+        self.left_rect_list.state.select_next()
     }
 }
 
