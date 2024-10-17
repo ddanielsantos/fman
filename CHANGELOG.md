@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/ddanielsantos/fm/compare/v0.1.0...v0.1.1) - 2024-10-17
+
+### Other
+
+- add label to released prs ([#7](https://github.com/ddanielsantos/fm/pull/7))
+- release v0.1.0 ([#4](https://github.com/ddanielsantos/fm/pull/4))
+
 ## [0.1.0](https://github.com/ddanielsantos/fm/releases/tag/v0.1.0) - 2024-10-17
 
 ### Added
