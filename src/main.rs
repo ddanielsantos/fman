@@ -1,9 +1,7 @@
-use std::any::Any;
 use std::env::current_dir;
 use std::fs::{self, DirEntry};
 
 use clap::Parser;
-use color_eyre::owo_colors::OwoColorize;
 use color_eyre::{eyre::Context, Result};
 use ratatui::prelude::*;
 use ratatui::widgets::{List, ListState};
@@ -34,17 +32,6 @@ struct EntriesList {
     state: ListState,
 }
 
-enum Action {
-    Enter,
-    Quit,
-    SelectUnselect,
-    Delete,
-    Trash,
-    Copy,
-    Paste,
-    Move,
-}
-
 const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 
 impl App {
@@ -73,10 +60,8 @@ impl App {
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
-        let content = get_content(current_path);
-
         let current_path_content: Vec<String> = self
-            .update_content(content)
+            .update_content(get_content(current_path))
             .into_iter()
             .map(|de| de.path().display().to_string())
             .collect();
@@ -98,7 +83,8 @@ impl App {
             KeyCode::Char('q') => self.should_quit = true,
             KeyCode::Up | KeyCode::Char('j') => self.move_up(),
             KeyCode::Down | KeyCode::Char('k') => self.move_down(),
-            KeyCode::Enter => self.enter_selected_item(),
+            KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
+            KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
             _ => (),
         }
     }
@@ -111,7 +97,18 @@ impl App {
         self.left_rect_list.state.select_next()
     }
 
-    fn enter_selected_item(&mut self) {
+    fn move_to_child(&mut self) {
+        if let Some(index) = self.left_rect_list.state.selected() {
+            self.args.path = Some(
+                self.left_rect_list.items[index]
+                    .path()
+                    .display()
+                    .to_string(),
+            );
+        }
+    }
+
+    fn move_to_parent(&mut self) {
         if let Some(index) = self.left_rect_list.state.selected() {
             self.args.path = Some(
                 self.left_rect_list.items[index]
