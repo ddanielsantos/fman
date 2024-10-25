@@ -64,7 +64,7 @@ impl App {
         let current_path_content: Vec<String> = self
             .update_content(get_content(current_path))
             .into_iter()
-            .map(|de| de.path().display().to_string())
+            .map(dir_entry_to_string)
             .collect();
 
         let left_block = Block::bordered().title(current_dir);
@@ -72,6 +72,7 @@ impl App {
             .block(left_block)
             .highlight_style(SELECTED_STYLE)
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
+
         frame.render_stateful_widget(list, left_rect, &mut self.left_rect_list.state);
         frame.render_widget(Block::bordered().title("content"), right);
     }
@@ -129,6 +130,10 @@ impl App {
         self.left_rect_list.items = content;
         &self.left_rect_list.items
     }
+}
+
+fn dir_entry_to_string(de: &DirEntry) -> String {
+    de.path().display().to_string()
 }
 
 fn get_content(path: &str) -> Vec<DirEntry> {
