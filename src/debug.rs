@@ -45,8 +45,7 @@ fn get_log_file_path() -> (PathBuf, PathBuf) {
     let dir = {
         if let Some(pt) = DATA_FOLDER.clone() {
             pt
-        } else if let Some(dir) = ProjectDirs::from("com", "ddanielsantos", env!("CARGO_PKG_NAME"))
-        {
+        } else if let Some(dir) = ProjectDirs::from("com", "dd", env!("CARGO_PKG_NAME")) {
             dir.data_local_dir().to_path_buf()
         } else {
             PathBuf::from(".").join(".data")
