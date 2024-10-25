@@ -113,7 +113,15 @@ impl App {
         if let Some(path) = &self.args.path {
             let path = Path::new(&path);
             let parent = path.parent();
-            self.args.path = Some(parent.unwrap().display().to_string());
+
+            match parent {
+                None => {
+                    todo!();
+                }
+                Some(parent) => {
+                    self.args.path = Some(parent.display().to_string());
+                }
+            }
         }
     }
 
