@@ -1,5 +1,6 @@
 use std::env::current_dir;
 use std::fs::{self, DirEntry};
+use std::path::Path;
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
@@ -109,13 +110,10 @@ impl App {
     }
 
     fn move_to_parent(&mut self) {
-        if let Some(index) = self.left_rect_list.state.selected() {
-            self.args.path = Some(
-                self.left_rect_list.items[index]
-                    .path()
-                    .display()
-                    .to_string(),
-            );
+        if let Some(path) = &self.args.path {
+            let path = Path::new(&path);
+            let parent = path.parent();
+            self.args.path = Some(parent.unwrap().display().to_string());
         }
     }
 
