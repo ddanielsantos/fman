@@ -1,9 +1,12 @@
+mod debug;
+
 use std::env::current_dir;
 use std::fs::{self, DirEntry};
 use std::path::Path;
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
+use debug::initialize_logging;
 use ratatui::prelude::*;
 use ratatui::widgets::{List, ListState};
 use ratatui::{
@@ -111,18 +114,20 @@ impl App {
     }
 
     fn move_to_parent(&mut self) {
-        if let Some(path) = &self.args.path {
-            let path = Path::new(&path);
+        if let Some(arg_path) = &self.args.path {
+            let path = Path::new(&arg_path);
             let parent = path.parent();
 
-            match parent {
-                None => {
-                    todo!();
-                }
-                Some(parent) => {
-                    self.args.path = Some(parent.display().to_string());
-                }
+            if let Some(parent) = parent {
+                self.args.path = Some(parent.display().to_string());
+            } else {
+                tracing::error!(
+                    "blank screen while going to parent, path: {}",
+                    arg_path.len()
+                );
             }
+        } else {
+            tracing::error!("idk why but theres no path")
         }
     }
 
@@ -144,11 +149,15 @@ fn get_content(path: &str) -> Vec<DirEntry> {
 
 fn main() -> Result<()> {
     color_eyre::install()?;
+    let _guard = initialize_logging()?;
+
     let args = Args::parse();
     let terminal = ratatui::init();
     let app_result = App::with_args(args)
         .run(terminal)
         .context("app loop failed");
+
     ratatui::restore();
+
     app_result
 }
