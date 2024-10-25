@@ -1,7 +1,4 @@
-use std::{
-    fs::{self, File},
-    path::PathBuf,
-};
+use std::{fs::File, path::PathBuf};
 
 use color_eyre::{eyre::Context, Result};
 use directories::ProjectDirs;
@@ -33,6 +30,7 @@ pub fn initialize_logging() -> Result<WorkerGuard> {
 
     tracing_subscriber::fmt()
         .with_file(true)
+        .with_ansi(false)
         .with_line_number(true)
         .with_writer(non_blocking)
         .with_env_filter(env_filter)
