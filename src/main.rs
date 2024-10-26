@@ -18,14 +18,10 @@ use style::palette::tailwind::SLATE;
 
 #[derive(Parser, Debug, Default)]
 #[command(version, long_about = None)]
-struct Args {
-    #[arg(short, long)]
-    path: Option<String>,
-}
+struct Args {}
 
 #[derive(Debug, Default)]
 struct App {
-    args: Args,
     should_quit: bool,
     left_rect_list: EntriesList,
 }
@@ -39,9 +35,8 @@ struct EntriesList {
 const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 
 impl App {
-    pub fn with_args(args: Args) -> Self {
+    pub fn with_args() -> Self {
         Self {
-            args,
             should_quit: false,
             left_rect_list: EntriesList::default(),
         }
@@ -83,6 +78,7 @@ impl App {
         if key.kind != KeyEventKind::Press {
             return;
         }
+
         match key.code {
             KeyCode::Char('q') => self.should_quit = true,
             KeyCode::Up | KeyCode::Char('j') => self.move_up(),
@@ -124,7 +120,6 @@ impl App {
     }
 
     fn move_to_parent(&mut self) {
-        tracing::debug!("moving to parent");
         let parent = std::env::current_dir()
             .unwrap()
             .parent()
@@ -138,13 +133,9 @@ impl App {
 
         let cloned = parent.clone();
 
-        tracing::debug!("{:?}", std::env::current_dir().unwrap());
-
         if let Err(_r) = self.change_dir(parent) {
             tracing::error!("Could not move to {:?}: {}", cloned, _r);
         }
-
-        tracing::debug!("{:?}", std::env::current_dir().unwrap());
     }
 
     fn update_content(&mut self, content: Vec<DirEntry>) -> &Vec<DirEntry> {
@@ -167,11 +158,8 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let _guard = initialize_logging()?;
 
-    let args = Args::parse();
     let terminal = ratatui::init();
-    let app_result = App::with_args(args)
-        .run(terminal)
-        .context("app loop failed");
+    let app_result = App::with_args().run(terminal).context("app loop failed");
 
     ratatui::restore();
 
