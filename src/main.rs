@@ -1,8 +1,8 @@
 mod debug;
 
-use std::env::current_dir;
+use std::fmt::Debug;
 use std::fs::{self, DirEntry};
-use std::path::Path;
+use std::path::PathBuf;
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
@@ -59,18 +59,17 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let current_dir = current_dir().unwrap().display().to_string();
-        let current_path = self.args.path.as_deref().unwrap_or(&current_dir);
+        let current_path = std::env::current_dir().unwrap().display().to_string();
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
         let current_path_content: Vec<String> = self
-            .update_content(get_content(current_path))
+            .update_content(get_content(&current_path))
             .into_iter()
             .map(dir_entry_to_string)
             .collect();
 
-        let left_block = Block::bordered().title(current_dir);
+        let left_block = Block::bordered().title(current_path);
         let list = List::new(current_path_content)
             .block(left_block)
             .highlight_style(SELECTED_STYLE)
@@ -102,33 +101,47 @@ impl App {
         self.left_rect_list.state.select_next()
     }
 
+    fn change_dir(&mut self, new_path: PathBuf) -> Result<()> {
+        std::env::set_current_dir(new_path).wrap_err("fuck")
+    }
+
     fn move_to_child(&mut self) {
         if let Some(index) = self.left_rect_list.state.selected() {
-            self.args.path = Some(
-                self.left_rect_list.items[index]
-                    .path()
-                    .display()
-                    .to_string(),
-            );
+            let new_path = self.left_rect_list.items[index].path();
+            let cloned = new_path.clone();
+
+            if !new_path.is_dir() {
+                return;
+            }
+
+            if let Err(_r) = self.change_dir(new_path) {
+                tracing::error!("Could not move to child dir {:?}", cloned);
+            }
         }
     }
 
     fn move_to_parent(&mut self) {
-        if let Some(arg_path) = &self.args.path {
-            let path = Path::new(&arg_path);
-            let parent = path.parent();
+        tracing::debug!("moving to parent");
+        let parent = std::env::current_dir()
+            .unwrap()
+            .parent()
+            .map(|p| p.to_path_buf());
 
-            if let Some(parent) = parent {
-                self.args.path = Some(parent.display().to_string());
-            } else {
-                tracing::error!(
-                    "blank screen while going to parent, path: {}",
-                    arg_path.len()
-                );
-            }
-        } else {
-            tracing::error!("idk why but theres no path")
+        if parent.is_none() {
+            return;
         }
+
+        let parent = parent.unwrap();
+
+        let cloned = parent.clone();
+
+        tracing::debug!("{:?}", std::env::current_dir().unwrap());
+
+        if let Err(_r) = self.change_dir(parent) {
+            tracing::error!("Could not move to {:?}: {}", cloned, _r);
+        }
+
+        tracing::debug!("{:?}", std::env::current_dir().unwrap());
     }
 
     fn update_content(&mut self, content: Vec<DirEntry>) -> &Vec<DirEntry> {
