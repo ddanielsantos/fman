@@ -102,7 +102,10 @@ impl App {
     }
 
     fn change_dir(&mut self, new_path: PathBuf) -> Result<()> {
-        std::env::set_current_dir(new_path).wrap_err("fuck")
+        let res = std::env::set_current_dir(new_path).wrap_err("fuck");
+        self.left_rect_list.state.select_first();
+
+        res
     }
 
     fn move_to_child(&mut self) {
