@@ -60,7 +60,7 @@ impl App {
 
         let current_path_content: Vec<String> = self
             .update_content(get_content(&current_path))
-            .into_iter()
+            .iter()
             .map(dir_entry_to_string)
             .collect();
 
