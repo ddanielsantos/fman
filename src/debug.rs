@@ -5,7 +5,10 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use tracing::Level;
 use tracing_appender::{non_blocking, non_blocking::WorkerGuard};
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{
+    fmt::time::{self},
+    EnvFilter,
+};
 
 lazy_static! {
     pub static ref PROJECT_NAME: String = env!("CARGO_CRATE_NAME").to_uppercase().to_string();
@@ -18,7 +21,7 @@ lazy_static! {
 }
 
 pub fn initialize_logging() -> Result<WorkerGuard> {
-    let (dir, file_path) = get_log_file_path();
+    let (dir, file_path) = get_dir_and_log_file_path();
     std::fs::create_dir_all(dir)?;
 
     let file = File::create(file_path).wrap_err("failed to create log file")?;
@@ -31,6 +34,7 @@ pub fn initialize_logging() -> Result<WorkerGuard> {
     tracing_subscriber::fmt()
         .with_file(true)
         .with_ansi(false)
+        .with_timer(time::OffsetTime::local_rfc_3339().expect("could not get local time offset"))
         .with_line_number(true)
         .with_writer(non_blocking)
         .with_env_filter(env_filter)
@@ -39,7 +43,7 @@ pub fn initialize_logging() -> Result<WorkerGuard> {
     Ok(guard)
 }
 
-fn get_log_file_path() -> (PathBuf, PathBuf) {
+fn get_dir_and_log_file_path() -> (PathBuf, PathBuf) {
     let dir = {
         if let Some(pt) = DATA_FOLDER.clone() {
             pt
