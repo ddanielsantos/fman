@@ -2,6 +2,7 @@ mod debug;
 
 use std::fmt::Debug;
 use std::fs::{self, DirEntry};
+use std::os::windows::fs::MetadataExt;
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -22,6 +23,7 @@ struct Args {}
 
 #[derive(Debug, Default)]
 struct App {
+    show_hidden: bool,
     should_quit: bool,
     left_rect_list: EntriesList,
 }
@@ -32,12 +34,14 @@ struct EntriesList {
     state: ListState,
 }
 
+const WINDOWS_FILE_ATTRIBUTE_HIDDEN: u32 = 0x00000002;
 const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 
 impl App {
     pub fn with_args() -> Self {
         Self {
             should_quit: false,
+            show_hidden: false,
             left_rect_list: EntriesList::default(),
         }
     }
@@ -59,7 +63,7 @@ impl App {
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
         let current_path_content: Vec<String> = self
-            .update_content(get_content(&current_path))
+            .update_content(get_content(&current_path, self.show_hidden))
             .iter()
             .map(dir_entry_to_string)
             .collect();
@@ -85,6 +89,7 @@ impl App {
             KeyCode::Down | KeyCode::Char('k') => self.move_down(),
             KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
             KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
+            KeyCode::Char('.') => self.toggle_show_hidden(),
             _ => (),
         }
     }
@@ -142,16 +147,52 @@ impl App {
         self.left_rect_list.items = content;
         &self.left_rect_list.items
     }
+
+    fn toggle_show_hidden(&mut self) {
+        self.show_hidden = !self.show_hidden;
+    }
 }
 
 fn dir_entry_to_string(de: &DirEntry) -> String {
     de.path().display().to_string()
 }
 
-fn get_content(path: &str) -> Vec<DirEntry> {
+fn get_content(path: &str, show_hidden: bool) -> Vec<DirEntry> {
     fs::read_dir(path)
-        .map(|rd| rd.filter_map(|e| e.ok()).collect())
+        .map(|rd| {
+            rd.filter_map(|e| e.ok())
+                .filter(|de| {
+                    if show_hidden {
+                        true
+                    } else {
+                        is_not_hidden(&de.path())
+                    }
+                })
+                .collect()
+        })
         .unwrap_or_else(|_| Vec::new())
+}
+
+fn is_not_hidden(path: &PathBuf) -> bool {
+    !is_hidden(path)
+}
+
+fn is_hidden(path: &PathBuf) -> bool {
+    let md = std::fs::metadata(path);
+
+    match md {
+        Ok(md) => {
+            if cfg!(target_os = "windows") {
+                md.file_attributes() & WINDOWS_FILE_ATTRIBUTE_HIDDEN != 0
+            } else {
+                path.to_string_lossy().starts_with(".")
+            }
+        }
+        Err(md_error) => {
+            tracing::warn!("{}", md_error);
+            false
+        }
+    }
 }
 
 fn main() -> Result<()> {
