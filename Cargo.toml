@@ -9,4 +9,9 @@ repository = "https://github.com/ddanielsantos/fman"
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 color-eyre = "0.6.3"
+directories = "5.0.1"
+lazy_static = "1.5.0"
 ratatui = "0.28.1"
+tracing = "0.1.40"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "time", "local-time"] }
