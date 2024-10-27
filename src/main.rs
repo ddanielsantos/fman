@@ -1,5 +1,6 @@
 mod debug;
 
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::{self, DirEntry};
 use std::os::windows::fs::MetadataExt;
@@ -26,6 +27,7 @@ struct App {
     show_hidden: bool,
     should_quit: bool,
     left_rect_list: EntriesList,
+    queued_items: HashSet<PathBuf>,
 }
 
 #[derive(Debug, Default)]
@@ -43,6 +45,7 @@ impl App {
             should_quit: false,
             show_hidden: false,
             left_rect_list: EntriesList::default(),
+            queued_items: HashSet::new(),
         }
     }
 
@@ -90,6 +93,8 @@ impl App {
             KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
             KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
             KeyCode::Char('.') => self.toggle_show_hidden(),
+            KeyCode::Char(' ') => self.toggle_presence_on_queue(),
+            KeyCode::Char('d') => self.delete_queued_items(),
             _ => (),
         }
     }
@@ -150,6 +155,29 @@ impl App {
 
     fn toggle_show_hidden(&mut self) {
         self.show_hidden = !self.show_hidden;
+    }
+
+    fn toggle_presence_on_queue(&mut self) {
+        if let Some(index) = self.left_rect_list.state.selected() {
+            let item = self.left_rect_list.items[index].path();
+            if self.queued_items.contains(&item) {
+                self.queued_items.remove(&item);
+            } else {
+                self.queued_items.insert(item);
+            }
+        }
+    }
+
+    fn delete_queued_items(&mut self) {
+        self.queued_items.iter().for_each(|qi| {
+            if qi.is_file() {
+                let _ = std::fs::remove_file(qi);
+            }
+
+            if qi.is_dir() {
+                let _ = std::fs::remove_dir_all(qi);
+            }
+        })
     }
 }
 
