@@ -169,13 +169,28 @@ impl App {
     }
 
     fn delete_queued_items(&mut self) {
-        self.queued_items.iter().for_each(|qi| {
+        let mut items_to_delete: Vec<&PathBuf> = self.queued_items.iter().collect();
+        tracing::debug!("before ordering: {:?}", items_to_delete);
+
+        items_to_delete.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+
+        tracing::debug!("after ordering: {:?}", items_to_delete);
+        items_to_delete.iter().for_each(|qi| {
+            tracing::debug!("handling {:?}", qi);
             if qi.is_file() {
-                let _ = std::fs::remove_file(qi);
+                let res = std::fs::remove_file(qi);
+
+                if res.is_err() {
+                    tracing::error!("{:?}", res);
+                }
             }
 
             if qi.is_dir() {
-                let _ = std::fs::remove_dir_all(qi);
+                let res = std::fs::remove_dir_all(qi);
+
+                if res.is_err() {
+                    tracing::error!("{:?}", res);
+                }
             }
         })
     }
