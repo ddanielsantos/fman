@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::{self, DirEntry};
 use std::os::windows::fs::MetadataExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
@@ -107,7 +107,7 @@ impl App {
         self.left_rect_list.state.select_next()
     }
 
-    fn change_dir(&mut self, new_path: PathBuf) -> Result<()> {
+    fn change_dir(&mut self, new_path: &Path) -> Result<()> {
         let res = std::env::set_current_dir(new_path).wrap_err("fuck");
         self.left_rect_list.state.select_first();
 
@@ -211,11 +211,11 @@ fn get_content(path: &str, show_hidden: bool) -> Vec<DirEntry> {
         .unwrap_or_else(|_| Vec::new())
 }
 
-fn is_not_hidden(path: &PathBuf) -> bool {
+fn is_not_hidden(path: &Path) -> bool {
     !is_hidden(path)
 }
 
-fn is_hidden(path: &PathBuf) -> bool {
+fn is_hidden(path: &Path) -> bool {
     let md = std::fs::metadata(path);
 
     match md {
