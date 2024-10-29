@@ -116,15 +116,13 @@ impl App {
 
     fn move_to_child(&mut self) {
         if let Some(index) = self.left_rect_list.state.selected() {
-            let new_path = self.left_rect_list.items[index].path();
-            let cloned = new_path.clone();
-
+            let new_path = &self.left_rect_list.items[index].path();
             if !new_path.is_dir() {
                 return;
             }
 
             if let Err(_r) = self.change_dir(new_path) {
-                tracing::error!("Could not move to child dir {:?}", cloned);
+                tracing::error!("Could not move to child dir {:?}", new_path);
             }
         }
     }
@@ -139,12 +137,9 @@ impl App {
             return;
         }
 
-        let parent = parent.unwrap();
-
-        let cloned = parent.clone();
-
+        let parent = &parent.unwrap();
         if let Err(_r) = self.change_dir(parent) {
-            tracing::error!("Could not move to {:?}: {}", cloned, _r);
+            tracing::error!("Could not move to {:?}: {}", parent, _r);
         }
     }
 
