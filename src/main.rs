@@ -216,16 +216,14 @@ fn is_not_hidden(path: &Path) -> bool {
 }
 
 fn is_hidden(path: &Path) -> bool {
+    if !cfg!(target_os = "windows") {
+        return path.to_string_lossy().starts_with(".");
+    }
+
     let md = std::fs::metadata(path);
 
     match md {
-        Ok(md) => {
-            if cfg!(target_os = "windows") {
-                md.file_attributes() & WINDOWS_FILE_ATTRIBUTE_HIDDEN != 0
-            } else {
-                path.to_string_lossy().starts_with(".")
-            }
-        }
+        Ok(md) => md.file_attributes() & WINDOWS_FILE_ATTRIBUTE_HIDDEN != 0,
         Err(md_error) => {
             tracing::warn!("{}", md_error);
             false
