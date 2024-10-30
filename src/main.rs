@@ -1,9 +1,10 @@
 mod debug;
 
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::{self, DirEntry};
 use std::os::windows::fs::MetadataExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
@@ -26,6 +27,7 @@ struct App {
     show_hidden: bool,
     should_quit: bool,
     left_rect_list: EntriesList,
+    queued_items: HashSet<PathBuf>,
 }
 
 #[derive(Debug, Default)]
@@ -43,6 +45,7 @@ impl App {
             should_quit: false,
             show_hidden: false,
             left_rect_list: EntriesList::default(),
+            queued_items: HashSet::new(),
         }
     }
 
@@ -58,7 +61,7 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let current_path = std::env::current_dir().unwrap().display().to_string();
+        let current_path = current_dir().unwrap().display().to_string();
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
@@ -90,6 +93,8 @@ impl App {
             KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
             KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
             KeyCode::Char('.') => self.toggle_show_hidden(),
+            KeyCode::Char(' ') => self.toggle_presence_on_queue(),
+            KeyCode::Char('d') => self.delete_queued_items(),
             _ => (),
         }
     }
@@ -102,44 +107,33 @@ impl App {
         self.left_rect_list.state.select_next()
     }
 
-    fn change_dir(&mut self, new_path: PathBuf) -> Result<()> {
-        let res = std::env::set_current_dir(new_path).wrap_err("fuck");
+    fn select_first(&mut self) {
         self.left_rect_list.state.select_first();
-
-        res
     }
 
     fn move_to_child(&mut self) {
         if let Some(index) = self.left_rect_list.state.selected() {
-            let new_path = self.left_rect_list.items[index].path();
-            let cloned = new_path.clone();
-
+            let new_path = &self.left_rect_list.items[index].path();
             if !new_path.is_dir() {
                 return;
             }
 
-            if let Err(_r) = self.change_dir(new_path) {
-                tracing::error!("Could not move to child dir {:?}", cloned);
+            if let Err(_r) = change_dir(new_path, || self.select_first()) {
+                tracing::error!("Could not move to child dir {:?}", new_path);
             }
         }
     }
 
     fn move_to_parent(&mut self) {
-        let parent = std::env::current_dir()
-            .unwrap()
-            .parent()
-            .map(|p| p.to_path_buf());
+        let parent = current_dir().unwrap().parent().map(|p| p.to_path_buf());
 
         if parent.is_none() {
             return;
         }
 
-        let parent = parent.unwrap();
-
-        let cloned = parent.clone();
-
-        if let Err(_r) = self.change_dir(parent) {
-            tracing::error!("Could not move to {:?}: {}", cloned, _r);
+        let parent = &parent.unwrap();
+        if let Err(_r) = change_dir(parent, || self.select_first()) {
+            tracing::error!("Could not move to {:?}: {}", parent, _r);
         }
     }
 
@@ -151,6 +145,67 @@ impl App {
     fn toggle_show_hidden(&mut self) {
         self.show_hidden = !self.show_hidden;
     }
+
+    fn toggle_presence_on_queue(&mut self) {
+        if let Some(index) = self.left_rect_list.state.selected() {
+            let item = self.left_rect_list.items[index].path();
+            if self.queued_items.contains(&item) {
+                self.queued_items.remove(&item);
+            } else {
+                self.queued_items.insert(item);
+            }
+        }
+    }
+
+    fn delete_queued_items(&mut self) {
+        let mut items_to_delete: Vec<PathBuf> = self.queued_items.iter().cloned().collect();
+
+        items_to_delete.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+
+        let current_dir = &current_dir().unwrap();
+        if items_to_delete.contains(current_dir) {
+            if let Some(parent) = current_dir.parent() {
+                if let Err(e) = change_dir(parent, || self.select_first()) {
+                    tracing::error!("Error while moving to parent of {:?}: {}", current_dir, e);
+                    return;
+                }
+            }
+        }
+
+        for qi in items_to_delete.iter() {
+            if qi.is_file() {
+                let res = std::fs::remove_file(qi);
+
+                if res.is_err() {
+                    tracing::error!("{:?}", res);
+                }
+                continue;
+            }
+
+            if qi.is_dir() {
+                let res = std::fs::remove_dir_all(qi);
+
+                if res.is_err() {
+                    tracing::error!("{:?}", res);
+                }
+                continue;
+            }
+        }
+    }
+}
+
+fn change_dir<CB>(new_path: &Path, mut cb: CB) -> Result<()>
+where
+    CB: FnMut(),
+{
+    let res = std::env::set_current_dir(new_path).wrap_err("Failed to change directory");
+    cb();
+
+    res
+}
+
+fn current_dir() -> Result<PathBuf> {
+    std::env::current_dir().wrap_err("Failed to get the current dir")
 }
 
 fn dir_entry_to_string(de: &DirEntry) -> String {
@@ -173,21 +228,19 @@ fn get_content(path: &str, show_hidden: bool) -> Vec<DirEntry> {
         .unwrap_or_else(|_| Vec::new())
 }
 
-fn is_not_hidden(path: &PathBuf) -> bool {
+fn is_not_hidden(path: &Path) -> bool {
     !is_hidden(path)
 }
 
-fn is_hidden(path: &PathBuf) -> bool {
+fn is_hidden(path: &Path) -> bool {
+    if !cfg!(target_os = "windows") {
+        return path.to_string_lossy().starts_with(".");
+    }
+
     let md = std::fs::metadata(path);
 
     match md {
-        Ok(md) => {
-            if cfg!(target_os = "windows") {
-                md.file_attributes() & WINDOWS_FILE_ATTRIBUTE_HIDDEN != 0
-            } else {
-                path.to_string_lossy().starts_with(".")
-            }
-        }
+        Ok(md) => md.file_attributes() & WINDOWS_FILE_ATTRIBUTE_HIDDEN != 0,
         Err(md_error) => {
             tracing::warn!("{}", md_error);
             false
