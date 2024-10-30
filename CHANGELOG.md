@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/ddanielsantos/fman/compare/v0.1.3...v0.1.4) - 2024-10-30
+
+### Added
+
+- add deletion logic
+- add handling for showing or not hidden files
+
+### Fixed
+
+- change dir before deleting current path
+- delete deepest items first
+- reset state after each directory change
+
+### Other
+
+- use common for instead
+- wrap current_dir()
+- move code up
+- use path ref
+- remove clones
+- apply clippy sugestions
+- remove args for now
+
 ## [0.1.3](https://github.com/ddanielsantos/fman/compare/v0.1.2...v0.1.3) - 2024-10-26
 
 ### Added
