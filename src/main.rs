@@ -61,7 +61,7 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let current_path = std::env::current_dir().unwrap().display().to_string();
+        let current_path = current_dir().unwrap().display().to_string();
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
@@ -128,10 +128,7 @@ impl App {
     }
 
     fn move_to_parent(&mut self) {
-        let parent = std::env::current_dir()
-            .unwrap()
-            .parent()
-            .map(|p| p.to_path_buf());
+        let parent = current_dir().unwrap().parent().map(|p| p.to_path_buf());
 
         if parent.is_none() {
             return;
@@ -189,6 +186,10 @@ impl App {
             }
         })
     }
+}
+
+fn current_dir() -> Result<PathBuf> {
+    std::env::current_dir().wrap_err("Failed to get the current dir")
 }
 
 fn dir_entry_to_string(de: &DirEntry) -> String {
