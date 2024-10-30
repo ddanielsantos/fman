@@ -243,12 +243,12 @@ fn is_hidden(path: &Path) -> bool {
         }
     }
 
-    #[cfg(target_os = "on_purpose_breaking")]
+    #[cfg(target_os = "macos")]
     {
         use std::os::macos::fs::MetadataExt;
 
         const UF_HIDDEN: u32 = 0x8000;
-        let metadata = std::fs::metadata(path)
+        let metadata = std::fs::metaaa(path)
             .wrap_err("Failed to get metadata from path")
             .unwrap();
 
