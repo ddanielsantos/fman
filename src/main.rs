@@ -243,7 +243,7 @@ fn is_hidden(path: &Path) -> bool {
         }
     }
 
-    #[cfg(target_os = "macos")]
+    #[cfg(target_os = "on_purpose_breaking")]
     {
         use std::os::macos::fs::MetadataExt;
 
