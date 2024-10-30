@@ -19,15 +19,15 @@ jobs:
         rustup target add x86_64-apple-darwin
         rustup target add x86_64-pc-windows-gnu
     - name: Build for Linux
-      run: cargo build --verbose
+      run: cargo build
     - name: Build for macOS
-      run: cargo build --target x86_64-apple-darwin --verbose
+      run: cargo build --target x86_64-apple-darwin
     - name: Build for Windows
-      run: cargo build --target x86_64-pc-windows-gnu --verbose
+      run: cargo build --target x86_64-pc-windows-gnu
 
   test-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
