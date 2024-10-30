@@ -234,9 +234,7 @@ fn is_hidden(path: &Path) -> bool {
     #[cfg(target_family = "unix")]
     {
         use std::ffi::OsStr;
-        let _ = metadata; // just to avoid warnings on Linux
         if path
-            .as_ref()
             .file_name()
             .and_then(OsStr::to_str)
             .is_some_and(|s| s.starts_with('.'))
@@ -250,6 +248,9 @@ fn is_hidden(path: &Path) -> bool {
         use std::os::macos::fs::MetadataExt;
 
         const UF_HIDDEN: u32 = 0x8000;
+        let metadata = std::fs::metadata(path)
+            .wrap_err("Failed to get metadata from path")
+            .unwrap();
 
         if (metadata.st_flags() & UF_HIDDEN) == UF_HIDDEN {
             return true;
