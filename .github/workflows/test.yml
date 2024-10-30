@@ -27,7 +27,8 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     steps:
-      # ...
+      - name: Check out repository
+        uses: actions/checkout@v4
       - run: |
           cargo build --target "${target}"
         env:
