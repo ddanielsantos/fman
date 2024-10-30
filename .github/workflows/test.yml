@@ -10,30 +10,33 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  generate-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.generate-matrix.outputs.matrix }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Generate build matrix
-        uses: reitermarkus/rust-build-matrix@main
-        id: generate-matrix  
   build:
-    runs-on: ${{ matrix.os }}
-    needs: generate-matrix
     strategy:
       matrix:
-        include: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+        platform:
+          - os-name: Linux-x86_64
+            runs-on: ubuntu-20.04
+            target: x86_64-unknown-linux-musl
+
+          - os-name: Windows-x86_64
+            runs-on: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          - os-name: macOS-x86_64
+            runs-on: macOS-latest
+            target: x86_64-apple-darwin    
+    runs-on: ${{ matrix.platform.runs-on }}
     steps:
-      - name: Check out repository
+      - name: Checkout repo
         uses: actions/checkout@v4
-      - run: |
-          cargo build --target "${target}"
-        env:
-          target: ${{ matrix.target }}
-  test-linux:
+      - name: Build project
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: ${{ matrix.platform.command }}
+          target: ${{ matrix.platform.target }}
+          args: "--locked"
+          strip: true
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
