@@ -107,11 +107,8 @@ impl App {
         self.left_rect_list.state.select_next()
     }
 
-    fn change_dir(&mut self, new_path: &Path) -> Result<()> {
-        let res = std::env::set_current_dir(new_path).wrap_err("fuck");
+    fn select_first(&mut self) {
         self.left_rect_list.state.select_first();
-
-        res
     }
 
     fn move_to_child(&mut self) {
@@ -121,7 +118,7 @@ impl App {
                 return;
             }
 
-            if let Err(_r) = self.change_dir(new_path) {
+            if let Err(_r) = change_dir(new_path, || self.select_first()) {
                 tracing::error!("Could not move to child dir {:?}", new_path);
             }
         }
@@ -135,7 +132,7 @@ impl App {
         }
 
         let parent = &parent.unwrap();
-        if let Err(_r) = self.change_dir(parent) {
+        if let Err(_r) = change_dir(parent, || self.select_first()) {
             tracing::error!("Could not move to {:?}: {}", parent, _r);
         }
     }
@@ -161,10 +158,19 @@ impl App {
     }
 
     fn delete_queued_items(&mut self) {
-        let mut items_to_delete: Vec<&PathBuf> = self.queued_items.iter().collect();
-        tracing::debug!("before ordering: {:?}", items_to_delete);
+        let mut items_to_delete: Vec<PathBuf> = self.queued_items.iter().cloned().collect();
 
         items_to_delete.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+
+        let current_dir = &current_dir().unwrap();
+        if items_to_delete.contains(current_dir) {
+            if let Some(parent) = current_dir.parent() {
+                if let Err(e) = change_dir(parent, || self.select_first()) {
+                    tracing::error!("Error while moving to parent of {:?}: {}", current_dir, e);
+                    return;
+                }
+            }
+        }
 
         for qi in items_to_delete.iter() {
             if qi.is_file() {
@@ -186,6 +192,16 @@ impl App {
             }
         }
     }
+}
+
+fn change_dir<CB>(new_path: &Path, mut cb: CB) -> Result<()>
+where
+    CB: FnMut(),
+{
+    let res = std::env::set_current_dir(new_path).wrap_err("Failed to change directory");
+    cb();
+
+    res
 }
 
 fn current_dir() -> Result<PathBuf> {
