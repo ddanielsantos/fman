@@ -166,15 +166,14 @@ impl App {
 
         items_to_delete.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
 
-        tracing::debug!("after ordering: {:?}", items_to_delete);
-        items_to_delete.iter().for_each(|qi| {
-            tracing::debug!("handling {:?}", qi);
+        for qi in items_to_delete.iter() {
             if qi.is_file() {
                 let res = std::fs::remove_file(qi);
 
                 if res.is_err() {
                     tracing::error!("{:?}", res);
                 }
+                continue;
             }
 
             if qi.is_dir() {
@@ -183,8 +182,9 @@ impl App {
                 if res.is_err() {
                     tracing::error!("{:?}", res);
                 }
+                continue;
             }
-        })
+        }
     }
 }
 
