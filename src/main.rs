@@ -3,7 +3,6 @@ mod debug;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::{self, DirEntry};
-use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
@@ -36,7 +35,6 @@ struct EntriesList {
     state: ListState,
 }
 
-const WINDOWS_FILE_ATTRIBUTE_HIDDEN: u32 = 0x00000002;
 const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 
 impl App {
@@ -233,19 +231,47 @@ fn is_not_hidden(path: &Path) -> bool {
 }
 
 fn is_hidden(path: &Path) -> bool {
-    if cfg!(windows) {
-        path.to_string_lossy().starts_with(".")
-    } else {
-        let md = std::fs::metadata(path);
-
-        match md {
-            Ok(md) => md.file_attributes() & WINDOWS_FILE_ATTRIBUTE_HIDDEN != 0,
-            Err(md_error) => {
-                tracing::warn!("{}", md_error);
-                false
-            }
+    #[cfg(target_family = "unix")]
+    {
+        use std::ffi::OsStr;
+        let _ = metadata; // just to avoid warnings on Linux
+        if path
+            .as_ref()
+            .file_name()
+            .and_then(OsStr::to_str)
+            .is_some_and(|s| s.starts_with('.'))
+        {
+            return true;
         }
     }
+
+    #[cfg(target_os = "macos")]
+    {
+        use std::os::macos::fs::MetadataExt;
+
+        const UF_HIDDEN: u32 = 0x8000;
+
+        if (metadata.st_flags() & UF_HIDDEN) == UF_HIDDEN {
+            return true;
+        }
+    }
+
+    #[cfg(target_family = "windows")]
+    {
+        use std::os::windows::fs::MetadataExt;
+
+        const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
+
+        let metadata = std::fs::metadata(path)
+            .wrap_err("Failed to get metadata from path")
+            .unwrap();
+
+        if (metadata.file_attributes() & FILE_ATTRIBUTE_HIDDEN) == FILE_ATTRIBUTE_HIDDEN {
+            return true;
+        }
+    }
+
+    false
 }
 
 fn main() -> Result<()> {
