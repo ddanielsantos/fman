@@ -1,9 +1,5 @@
 mod debug;
-
-use std::collections::HashSet;
-use std::fmt::Debug;
-use std::fs::{self, DirEntry};
-use std::path::{Path, PathBuf};
+mod fs;
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
@@ -15,6 +11,10 @@ use ratatui::{
     widgets::Block,
     DefaultTerminal, Frame,
 };
+use std::collections::HashSet;
+use std::fmt::Debug;
+use std::fs::DirEntry;
+use std::path::PathBuf;
 use style::palette::tailwind::SLATE;
 
 #[derive(Parser, Debug, Default)]
@@ -59,14 +59,14 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let current_path = current_dir().unwrap().display().to_string();
+        let current_path = fs::current_dir().unwrap().display().to_string();
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
         let current_path_content: Vec<String> = self
-            .update_content(get_content(&current_path, self.show_hidden))
+            .update_content(fs::get_content(&current_path, self.show_hidden))
             .iter()
-            .map(dir_entry_to_string)
+            .map(fs::dir_entry_to_string)
             .collect();
 
         let left_block = Block::bordered().title(current_path);
@@ -116,21 +116,21 @@ impl App {
                 return;
             }
 
-            if let Err(_r) = change_dir(new_path, || self.select_first()) {
+            if let Err(_r) = fs::change_dir(new_path, || self.select_first()) {
                 tracing::error!("Could not move to child dir {:?}", new_path);
             }
         }
     }
 
     fn move_to_parent(&mut self) {
-        let parent = current_dir().unwrap().parent().map(|p| p.to_path_buf());
+        let parent = fs::current_dir().unwrap().parent().map(|p| p.to_path_buf());
 
         if parent.is_none() {
             return;
         }
 
         let parent = &parent.unwrap();
-        if let Err(_r) = change_dir(parent, || self.select_first()) {
+        if let Err(_r) = fs::change_dir(parent, || self.select_first()) {
             tracing::error!("Could not move to {:?}: {}", parent, _r);
         }
     }
@@ -160,119 +160,18 @@ impl App {
 
         items_to_delete.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
 
-        let current_dir = &current_dir().unwrap();
+        let current_dir = &fs::current_dir().unwrap();
         if items_to_delete.contains(current_dir) {
             if let Some(parent) = current_dir.parent() {
-                if let Err(e) = change_dir(parent, || self.select_first()) {
+                if let Err(e) = fs::change_dir(parent, || self.select_first()) {
                     tracing::error!("Error while moving to parent of {:?}: {}", current_dir, e);
                     return;
                 }
             }
         }
 
-        for qi in items_to_delete.iter() {
-            if qi.is_file() {
-                let res = std::fs::remove_file(qi);
-
-                if res.is_err() {
-                    tracing::error!("{:?}", res);
-                }
-                continue;
-            }
-
-            if qi.is_dir() {
-                let res = std::fs::remove_dir_all(qi);
-
-                if res.is_err() {
-                    tracing::error!("{:?}", res);
-                }
-                continue;
-            }
-        }
+        fs::delete_all(items_to_delete);
     }
-}
-
-fn change_dir<CB>(new_path: &Path, mut cb: CB) -> Result<()>
-where
-    CB: FnMut(),
-{
-    let res = std::env::set_current_dir(new_path).wrap_err("Failed to change directory");
-    cb();
-
-    res
-}
-
-fn current_dir() -> Result<PathBuf> {
-    std::env::current_dir().wrap_err("Failed to get the current dir")
-}
-
-fn dir_entry_to_string(de: &DirEntry) -> String {
-    de.path().display().to_string()
-}
-
-fn get_content(path: &str, show_hidden: bool) -> Vec<DirEntry> {
-    fs::read_dir(path)
-        .map(|rd| {
-            rd.filter_map(|e| e.ok())
-                .filter(|de| {
-                    if show_hidden {
-                        true
-                    } else {
-                        is_not_hidden(&de.path())
-                    }
-                })
-                .collect()
-        })
-        .unwrap_or_else(|_| Vec::new())
-}
-
-fn is_not_hidden(path: &Path) -> bool {
-    !is_hidden(path)
-}
-
-fn is_hidden(path: &Path) -> bool {
-    #[cfg(target_family = "unix")]
-    {
-        use std::ffi::OsStr;
-        if path
-            .file_name()
-            .and_then(OsStr::to_str)
-            .is_some_and(|s| s.starts_with('.'))
-        {
-            return true;
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        use std::os::macos::fs::MetadataExt;
-
-        const UF_HIDDEN: u32 = 0x8000;
-        let metadata = std::fs::metadata(path)
-            .wrap_err("Failed to get metadata from path")
-            .unwrap();
-
-        if (metadata.st_flags() & UF_HIDDEN) == UF_HIDDEN {
-            return true;
-        }
-    }
-
-    #[cfg(target_family = "windows")]
-    {
-        use std::os::windows::fs::MetadataExt;
-
-        const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
-
-        let metadata = std::fs::metadata(path)
-            .wrap_err("Failed to get metadata from path")
-            .unwrap();
-
-        if (metadata.file_attributes() & FILE_ATTRIBUTE_HIDDEN) == FILE_ATTRIBUTE_HIDDEN {
-            return true;
-        }
-    }
-
-    false
 }
 
 fn main() -> Result<()> {
