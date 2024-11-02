@@ -4,6 +4,7 @@ mod fs;
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
 use debug::initialize_logging;
+use layout::Flex;
 use ratatui::prelude::*;
 use ratatui::widgets::{List, ListState};
 use ratatui::{
@@ -25,8 +26,16 @@ struct Args {}
 struct App {
     show_hidden: bool,
     should_quit: bool,
+    mode: Mode,
     left_rect_list: EntriesList,
     queued_items: HashSet<PathBuf>,
+}
+
+#[derive(Debug, PartialEq, Default)]
+enum Mode {
+    #[default]
+    Normal,
+    Creating,
 }
 
 #[derive(Debug, Default)]
@@ -42,6 +51,7 @@ impl App {
         Self {
             should_quit: false,
             show_hidden: false,
+            mode: Mode::default(),
             left_rect_list: EntriesList::default(),
             queued_items: HashSet::new(),
         }
@@ -69,14 +79,35 @@ impl App {
             .map(fs::dir_entry_to_string)
             .collect();
 
-        let left_block = Block::bordered().title(current_path);
+        let left_block = Block::bordered()
+            .title(current_path)
+            .border_type(ratatui::widgets::BorderType::Rounded);
         let list = List::new(current_path_content)
             .block(left_block)
             .highlight_style(SELECTED_STYLE)
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
 
         frame.render_stateful_widget(list, left_rect, &mut self.left_rect_list.state);
-        frame.render_widget(Block::bordered().title("content"), right);
+        frame.render_widget(
+            Block::bordered()
+                .title("content")
+                .border_type(ratatui::widgets::BorderType::Rounded),
+            right,
+        );
+
+        if self.mode == Mode::Creating {
+            let rect = centered(
+                frame.area(),
+                Constraint::Percentage(100),
+                Constraint::Percentage(100),
+            );
+            frame.render_widget(
+                Block::bordered()
+                    .border_type(ratatui::widgets::BorderType::Rounded)
+                    .title_top("create item"),
+                rect,
+            );
+        }
     }
 
     fn handle_key(&mut self, key: event::KeyEvent) {
@@ -172,6 +203,17 @@ impl App {
 
         fs::delete_all(items_to_delete);
     }
+
+    fn change_to_creating_mode(&mut self) {
+        self.mode = Mode::Creating;
+    }
+
+
+fn centered(area: Rect, hor: Constraint, ver: Constraint) -> Rect {
+    let [area] = Layout::horizontal([hor]).flex(Flex::Center).areas(area);
+    let [area] = Layout::vertical([ver]).flex(Flex::Center).areas(area);
+
+    area
 }
 
 fn main() -> Result<()> {
