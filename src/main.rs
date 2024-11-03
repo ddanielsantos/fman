@@ -27,6 +27,7 @@ struct App {
     show_hidden: bool,
     should_quit: bool,
     mode: Mode,
+    input: Input,
     left_rect_list: EntriesList,
     queued_items: HashSet<PathBuf>,
 }
@@ -36,6 +37,37 @@ enum Mode {
     #[default]
     Normal,
     Creating,
+}
+
+#[derive(Debug, Default)]
+struct Input {
+    char_index: usize,
+    text: String,
+}
+
+impl Input {
+    fn clear(&mut self) {
+        self.text.clear();
+        self.char_index = 0;
+    }
+
+    fn insert(&mut self, idx: usize, c: char) {
+        self.text.insert(idx, c);
+    }
+
+    fn move_to_right(&mut self) {
+        let new_index = self.char_index.saturating_add(1);
+        self.char_index = self.clamp_index(new_index);
+    }
+
+    fn clamp_index(&self, new_index: usize) -> usize {
+        new_index.clamp(0, self.text.chars().count())
+    }
+
+    fn move_to_left(&mut self) {
+        let new_index = self.char_index.saturating_sub(1);
+        self.char_index = self.clamp_index(new_index);
+    }
 }
 
 #[derive(Debug, Default)]
@@ -52,6 +84,7 @@ impl App {
             should_quit: false,
             show_hidden: false,
             mode: Mode::default(),
+            input: Input::default(),
             left_rect_list: EntriesList::default(),
             queued_items: HashSet::new(),
         }
