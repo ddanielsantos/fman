@@ -6,7 +6,7 @@ use color_eyre::{eyre::Context, Result};
 use debug::initialize_logging;
 use layout::Flex;
 use ratatui::prelude::*;
-use ratatui::widgets::{List, ListState};
+use ratatui::widgets::{Clear, List, ListState, Paragraph};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     widgets::Block,
@@ -129,17 +129,24 @@ impl App {
         );
 
         if self.mode == Mode::Creating {
-            let rect = centered(
-                frame.area(),
-                Constraint::Percentage(100),
-                Constraint::Percentage(100),
+            let area = frame.area();
+            let popup_rect = Rect {
+                x: area.width / 4,
+                y: area.height / 3,
+                width: area.width / 2,
+                height: area.height / 3,
+            };
+
+            frame.render_widget(Clear::default(), popup_rect);
+            let block = Block::bordered()
+                .border_type(ratatui::widgets::BorderType::Rounded)
+                .title_top("create item");
+            frame.render_widget(Paragraph::new(&*self.input.text).block(block), popup_rect);
+            let cursor_position = Position::new(
+                popup_rect.x + self.input.char_index as u16 + 1,
+                popup_rect.y + 1,
             );
-            frame.render_widget(
-                Block::bordered()
-                    .border_type(ratatui::widgets::BorderType::Rounded)
-                    .title_top("create item"),
-                rect,
-            );
+            frame.set_cursor_position(cursor_position)
         }
     }
 
@@ -291,4 +298,20 @@ fn main() -> Result<()> {
     ratatui::restore();
 
     app_result
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn idk() {
+        let input = Input {
+            char_index: 6,
+            text: "とラストガエル".to_string(),
+        };
+
+        let actual = byte_index(&input);
+        assert_eq!(actual, 18);
+    }
 }
