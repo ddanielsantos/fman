@@ -241,6 +241,14 @@ impl App {
         self.mode = Mode::Creating;
     }
 
+fn byte_index(input: &Input) -> usize {
+    input
+        .text
+        .char_indices()
+        .map(|(i, _)| i)
+        .nth(input.char_index)
+        .unwrap_or(input.text.len())
+}
 
 fn centered(area: Rect, hor: Constraint, ver: Constraint) -> Rect {
     let [area] = Layout::horizontal([hor]).flex(Flex::Center).areas(area);
