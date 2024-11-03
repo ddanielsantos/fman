@@ -148,16 +148,26 @@ impl App {
             return;
         }
 
-        match key.code {
-            KeyCode::Char('q') => self.should_quit = true,
-            KeyCode::Up | KeyCode::Char('j') => self.move_up(),
-            KeyCode::Down | KeyCode::Char('k') => self.move_down(),
-            KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
-            KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
-            KeyCode::Char('.') => self.toggle_show_hidden(),
-            KeyCode::Char(' ') => self.toggle_presence_on_queue(),
-            KeyCode::Char('d') => self.delete_queued_items(),
-            _ => (),
+        match self.mode {
+            Mode::Creating => match key.code {
+                KeyCode::Enter => self.create_items(),
+                KeyCode::Char(c) => self.add_char(c),
+                KeyCode::Left => self.input.move_to_left(),
+                KeyCode::Right => self.input.move_to_right(),
+                _ => (),
+            },
+            Mode::Normal => match key.code {
+                KeyCode::Char('q') => self.should_quit = true,
+                KeyCode::Up | KeyCode::Char('j') => self.move_up(),
+                KeyCode::Down | KeyCode::Char('k') => self.move_down(),
+                KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
+                KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
+                KeyCode::Char('.') => self.toggle_show_hidden(),
+                KeyCode::Char(' ') => self.toggle_presence_on_queue(),
+                KeyCode::Char('d') => self.delete_queued_items(),
+                KeyCode::Char('n') => self.change_to_creating_mode(),
+                _ => (),
+            },
         }
     }
 
