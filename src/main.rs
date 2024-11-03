@@ -241,6 +241,20 @@ impl App {
         self.mode = Mode::Creating;
     }
 
+    fn create_items(&mut self) {
+        tracing::debug!("{:?}", self.input);
+
+        self.mode = Mode::Normal;
+        self.input.clear();
+    }
+
+    fn add_char(&mut self, c: char) {
+        let idx = byte_index(&self.input);
+        self.input.insert(idx, c);
+        self.input.move_to_right();
+    }
+}
+
 fn byte_index(input: &Input) -> usize {
     input
         .text
