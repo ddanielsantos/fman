@@ -1,5 +1,6 @@
 mod debug;
 mod fs;
+mod ui;
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
@@ -129,23 +130,9 @@ impl App {
         );
 
         if self.mode == Mode::Creating {
-            let area = frame.area();
-            let popup_rect = Rect {
-                x: area.width / 4,
-                y: area.height / 3,
-                width: area.width / 2,
-                height: area.height / 3,
-            };
-
-            frame.render_widget(Clear::default(), popup_rect);
-            let block = Block::bordered()
-                .border_type(ratatui::widgets::BorderType::Rounded)
-                .title_top("create item");
-            frame.render_widget(Paragraph::new(&*self.input.text).block(block), popup_rect);
-            let cursor_position = Position::new(
-                popup_rect.x + self.input.char_index as u16 + 1,
-                popup_rect.y + 1,
-            );
+            let input_popup = ui::InputPopup::new(&self.input);
+            let cursor_position = input_popup.get_cursor_position(frame.area());
+            frame.render_widget(input_popup, frame.area());
             frame.set_cursor_position(cursor_position)
         }
     }
