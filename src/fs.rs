@@ -20,7 +20,7 @@ pub fn dir_entry_to_string(de: &DirEntry) -> String {
     de.path().display().to_string()
 }
 
-pub fn get_content(path: &str, show_hidden: bool) -> Vec<DirEntry> {
+pub fn get_content<P: AsRef<Path>>(path: P, show_hidden: bool) -> Vec<DirEntry> {
     fs::read_dir(path)
         .map(|rd| {
             rd.filter_map(|e| e.ok())

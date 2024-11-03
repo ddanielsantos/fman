@@ -69,7 +69,7 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let current_path = fs::current_dir().unwrap().display().to_string();
+        let current_path = fs::current_dir().unwrap();
 
         let [left_rect, right] = Layout::horizontal([Constraint::Fill(1); 2]).areas(frame.area());
 
@@ -80,7 +80,7 @@ impl App {
             .collect();
 
         let left_block = Block::bordered()
-            .title(current_path)
+            .title(current_path.display().to_string())
             .border_type(ratatui::widgets::BorderType::Rounded);
         let list = List::new(current_path_content)
             .block(left_block)
