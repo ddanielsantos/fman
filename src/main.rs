@@ -146,7 +146,7 @@ impl App {
         );
 
         if self.mode == Mode::Creating {
-            let input_popup = ui::Input::new(&self.input).as_popup();
+            let input_popup = ui::Input::new(&self.input).popup();
             let cursor_position = input_popup.get_cursor_position(frame.area());
             frame.render_widget(input_popup, frame.area());
             frame.set_cursor_position(cursor_position)

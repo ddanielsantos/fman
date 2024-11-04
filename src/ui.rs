@@ -30,7 +30,7 @@ impl<'a> Input<'a> {
         self
     }
 
-    pub fn as_popup(mut self) -> Self {
+    pub fn popup(mut self) -> Self {
         self.popup = true;
         self
     }
