@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5](https://github.com/ddanielsantos/fman/compare/v0.1.4...v0.1.5) - 2024-11-04
+
+### Other
+
+- update README.md
+- move file system related code to own module
+- add links
+- add readme
+- use cross for build action
+- checkout repo before building
+- add matrix.os
+- remove verbose flag
+- ignore
+- remove step
+- add test action
+- ignore
+- ignore
+- Create test.yml
+
 ## [0.1.4](https://github.com/ddanielsantos/fman/compare/v0.1.3...v0.1.4) - 2024-10-30
 
 ### Added
