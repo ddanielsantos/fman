@@ -7,9 +7,9 @@ I was heavily inspired by [lazygit](https://github.com/jesseduffield/lazygit)/[d
 ## roadmap
 
 - [x] hidden folders
-- [x] delete files/folders
+- [x] delete path
+- [x] create path
 - [ ] copy
 - [ ] move
 - [ ] rename
-- [ ] create
 - [ ] folder preview
