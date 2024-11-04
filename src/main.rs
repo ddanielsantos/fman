@@ -68,6 +68,23 @@ impl Input {
         let new_index = self.char_index.saturating_sub(1);
         self.char_index = self.clamp_index(new_index);
     }
+
+    fn add_char(&mut self, c: char) {
+        let idx = byte_index(&self);
+        self.insert(idx, c);
+        self.move_to_right();
+    }
+
+    fn delete_char(&mut self) {
+        let idx = byte_index(&self).saturating_sub(1);
+
+        if self.char_index == 0 {
+            return;
+        }
+
+        self.text.remove(idx);
+        self.move_to_left();
+    }
 }
 
 #[derive(Debug, Default)]
@@ -144,7 +161,8 @@ impl App {
         match self.mode {
             Mode::Creating => match key.code {
                 KeyCode::Enter => self.create_items(),
-                KeyCode::Char(c) => self.add_char(c),
+                KeyCode::Char(c) => self.input.add_char(c),
+                KeyCode::Backspace => self.input.delete_char(),
                 KeyCode::Left => self.input.move_to_left(),
                 KeyCode::Right => self.input.move_to_right(),
                 _ => (),
@@ -249,12 +267,6 @@ impl App {
 
         self.mode = Mode::Normal;
         self.input.clear();
-    }
-
-    fn add_char(&mut self, c: char) {
-        let idx = byte_index(&self.input);
-        self.input.insert(idx, c);
-        self.input.move_to_right();
     }
 }
 
