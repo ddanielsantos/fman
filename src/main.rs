@@ -263,8 +263,6 @@ impl App {
     }
 
     fn create_items(&mut self) {
-        tracing::debug!("{:?}", self.input);
-
         self.mode = Mode::Normal;
         self.input.clear();
     }
