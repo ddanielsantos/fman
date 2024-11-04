@@ -36,7 +36,7 @@ impl Widget for InputPopup<'_> {
         Self: Sized,
     {
         let popup_rect = Self::get_popup_rect(area);
-        Clear::default().render(popup_rect, buf);
+        Clear.render(popup_rect, buf);
         let block = Block::bordered()
             .border_type(ratatui::widgets::BorderType::Rounded)
             .title_top("create item");

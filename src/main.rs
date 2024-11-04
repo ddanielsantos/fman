@@ -5,9 +5,8 @@ mod ui;
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
 use debug::initialize_logging;
-use layout::Flex;
 use ratatui::prelude::*;
-use ratatui::widgets::{Clear, List, ListState, Paragraph};
+use ratatui::widgets::{List, ListState};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     widgets::Block,
@@ -266,13 +265,6 @@ fn byte_index(input: &Input) -> usize {
         .map(|(i, _)| i)
         .nth(input.char_index)
         .unwrap_or(input.text.len())
-}
-
-fn centered(area: Rect, hor: Constraint, ver: Constraint) -> Rect {
-    let [area] = Layout::horizontal([hor]).flex(Flex::Center).areas(area);
-    let [area] = Layout::vertical([ver]).flex(Flex::Center).areas(area);
-
-    area
 }
 
 fn main() -> Result<()> {
