@@ -20,7 +20,7 @@ pub fn dir_entry_to_string(de: &DirEntry) -> String {
     de.path().display().to_string()
 }
 
-pub fn get_content(path: &str, show_hidden: bool) -> Vec<DirEntry> {
+pub fn get_content<P: AsRef<Path>>(path: P, show_hidden: bool) -> Vec<DirEntry> {
     fs::read_dir(path)
         .map(|rd| {
             rd.filter_map(|e| e.ok())
@@ -105,4 +105,28 @@ pub fn delete_all(items_to_delete: Vec<PathBuf>) {
             continue;
         }
     }
+}
+
+pub fn create_path<P: Into<PathBuf>>(path: P) {
+    let path: &PathBuf = &path.into();
+
+    if path
+        .to_string_lossy()
+        .ends_with(std::path::MAIN_SEPARATOR_STR)
+    {
+        if let Err(e) = std::fs::create_dir_all(path) {
+            tracing::error!("Could not create dir {}", e);
+            return;
+        }
+    }
+
+    let parent = path.parent().unwrap();
+    if let Err(e) = std::fs::create_dir_all(parent) {
+        tracing::error!("Could not create dir {}", e);
+        return;
+    }
+
+    if let Err(e) = std::fs::File::create(path) {
+        tracing::error!("Could not create file {}", e);
+    };
 }
