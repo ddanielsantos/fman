@@ -46,6 +46,13 @@ struct Input {
 }
 
 impl Input {
+    fn new(text: String) -> Self {
+        Self {
+            char_index: text.len(),
+            text,
+        }
+    }
+
     fn clear(&mut self) {
         self.text.clear();
         self.char_index = 0;
@@ -70,13 +77,13 @@ impl Input {
     }
 
     fn add_char(&mut self, c: char) {
-        let idx = byte_index(&self);
+        let idx = byte_index(self);
         self.insert(idx, c);
         self.move_to_right();
     }
 
     fn delete_char(&mut self) {
-        let idx = byte_index(&self).saturating_sub(1);
+        let idx = byte_index(self).saturating_sub(1);
 
         if self.char_index == 0 {
             return;
@@ -260,10 +267,14 @@ impl App {
 
     fn change_to_creating_mode(&mut self) {
         self.mode = Mode::Creating;
+        self.input = Input::new(fs::current_dir().unwrap().display().to_string())
     }
 
     fn create_items(&mut self) {
         self.mode = Mode::Normal;
+
+        fs::create_path(&self.input.text);
+
         self.input.clear();
     }
 }

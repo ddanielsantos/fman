@@ -106,3 +106,27 @@ pub fn delete_all(items_to_delete: Vec<PathBuf>) {
         }
     }
 }
+
+pub fn create_path<P: Into<PathBuf>>(path: P) {
+    let path: &PathBuf = &path.into();
+
+    if path
+        .to_string_lossy()
+        .ends_with(std::path::MAIN_SEPARATOR_STR)
+    {
+        if let Err(e) = std::fs::create_dir_all(path) {
+            tracing::error!("Could not create dir {}", e);
+            return;
+        }
+    }
+
+    let parent = path.parent().unwrap();
+    if let Err(e) = std::fs::create_dir_all(parent) {
+        tracing::error!("Could not create dir {}", e);
+        return;
+    }
+
+    if let Err(e) = std::fs::File::create(path) {
+        tracing::error!("Could not create file {}", e);
+    };
+}
