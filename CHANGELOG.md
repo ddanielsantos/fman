@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8](https://github.com/ddanielsantos/fman/compare/v0.1.7...v0.1.8) - 2024-11-07
+
+### Other
+
+- tag released prs (4th try)
+- tag released prs (3rd try)
+
 ## [0.1.7](https://github.com/ddanielsantos/fman/compare/v0.1.6...v0.1.7) - 2024-11-07
 
 ### Other
