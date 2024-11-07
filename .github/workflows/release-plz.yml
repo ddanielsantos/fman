@@ -46,6 +46,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
+        id: release-plz
         uses: MarcoIeni/release-plz-action@v0.5
         with:
           command: release-pr
@@ -59,16 +60,11 @@ jobs:
         run: |
           set -e
 
-          # Iterate over released packages and add a label to the PRs
-          # shipped with the release.
           for release in $(echo "$RELEASES" | jq -r -c '.[]'); do
               package_name=$(echo "$release" | jq -r '.package_name')
               version=$(echo "$release" | jq -r '.version')
               prs_length=$(echo "$release" | jq '.prs | length')
               if [ "$prs_length" -gt 0 ]; then
-                  # Create label.
-                  # Use `--force` to overwrite the label,
-                  # so that the command does not fail if the label already exists.
                   label="released:$package_name-$version"
                   echo "Creating label $label"
                   gh label create $label --color BFD4F2 --force
