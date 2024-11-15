@@ -6,7 +6,7 @@ use clap::Parser;
 use color_eyre::{eyre::Context, Result};
 use debug::initialize_logging;
 use ratatui::prelude::*;
-use ratatui::widgets::{List, ListState};
+use ratatui::widgets::ListState;
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     widgets::Block,
@@ -16,7 +16,6 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::DirEntry;
 use std::path::PathBuf;
-use style::palette::tailwind::SLATE;
 
 #[derive(Parser, Debug, Default)]
 #[command(version, long_about = None)]
@@ -30,6 +29,7 @@ struct App {
     input: Input,
     left_rect_list: EntriesList,
     queued_items: HashSet<PathBuf>,
+    command_list: CommandList,
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -37,12 +37,18 @@ enum Mode {
     #[default]
     Normal,
     Creating,
+    ShowingCommands,
 }
 
 #[derive(Debug, Default)]
 struct Input {
     char_index: usize,
     text: String,
+}
+
+#[derive(Debug, Default)]
+struct CommandList {
+    state: ListState,
 }
 
 impl Input {
@@ -100,8 +106,6 @@ struct EntriesList {
     state: ListState,
 }
 
-const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
-
 impl App {
     pub fn with_args() -> Self {
         Self {
@@ -111,6 +115,7 @@ impl App {
             input: Input::default(),
             left_rect_list: EntriesList::default(),
             queued_items: HashSet::new(),
+            command_list: CommandList::default(),
         }
     }
 
@@ -136,13 +141,7 @@ impl App {
             .map(fs::dir_entry_to_string)
             .collect();
 
-        let left_block = Block::bordered()
-            .title(current_path.display().to_string())
-            .border_type(ratatui::widgets::BorderType::Rounded);
-        let list = List::new(current_path_content)
-            .block(left_block)
-            .highlight_style(SELECTED_STYLE)
-            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
+        let list = ui::MainList::new(current_path.display().to_string(), current_path_content);
 
         frame.render_stateful_widget(list, left_rect, &mut self.left_rect_list.state);
         frame.render_widget(
@@ -152,11 +151,22 @@ impl App {
             right,
         );
 
-        if self.mode == Mode::Creating {
-            let input_popup = ui::Input::new(&self.input).popup();
-            let cursor_position = input_popup.get_cursor_position(frame.area());
-            frame.render_widget(input_popup, frame.area());
-            frame.set_cursor_position(cursor_position)
+        match self.mode {
+            Mode::Creating => {
+                let input_popup = ui::Input::new(&self.input).popup();
+                let cursor_position = input_popup.get_cursor_position(frame.area());
+                frame.render_widget(input_popup, frame.area());
+                frame.set_cursor_position(cursor_position)
+            }
+            Mode::ShowingCommands => {
+                let command_selector = ui::CommandPicker::new(get_commands());
+                frame.render_stateful_widget(
+                    command_selector,
+                    frame.area(),
+                    &mut self.command_list.state,
+                );
+            }
+            _ => (),
         }
     }
 
@@ -176,29 +186,24 @@ impl App {
             },
             Mode::Normal => match key.code {
                 KeyCode::Char('q') => self.should_quit = true,
-                KeyCode::Up | KeyCode::Char('j') => self.move_up(),
-                KeyCode::Down | KeyCode::Char('k') => self.move_down(),
+                KeyCode::Up | KeyCode::Char('j') => ui::move_up(&mut self.left_rect_list.state),
+                KeyCode::Down | KeyCode::Char('k') => ui::move_down(&mut self.left_rect_list.state),
                 KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
                 KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
                 KeyCode::Char('.') => self.toggle_show_hidden(),
                 KeyCode::Char(' ') => self.toggle_presence_on_queue(),
                 KeyCode::Char('d') => self.delete_queued_items(),
                 KeyCode::Char('n') => self.change_to_creating_mode(),
+                KeyCode::Char('?') => self.toggle_show_commands(),
+                _ => (),
+            },
+            Mode::ShowingCommands => match key.code {
+                KeyCode::Esc | KeyCode::Char('q') => self.toggle_show_commands(),
+                KeyCode::Up | KeyCode::Char('j') => ui::move_up(&mut self.command_list.state),
+                KeyCode::Down | KeyCode::Char('k') => ui::move_down(&mut self.command_list.state),
                 _ => (),
             },
         }
-    }
-
-    fn move_up(&mut self) {
-        self.left_rect_list.state.select_previous()
-    }
-
-    fn move_down(&mut self) {
-        self.left_rect_list.state.select_next()
-    }
-
-    fn select_first(&mut self) {
-        self.left_rect_list.state.select_first();
     }
 
     fn move_to_child(&mut self) {
@@ -208,7 +213,9 @@ impl App {
                 return;
             }
 
-            if let Err(_r) = fs::change_dir(new_path, || self.select_first()) {
+            if let Err(_r) = fs::change_dir(new_path, || {
+                ui::select_first(&mut self.left_rect_list.state)
+            }) {
                 tracing::error!("Could not move to child dir {:?}", new_path);
             }
         }
@@ -222,7 +229,8 @@ impl App {
         }
 
         let parent = &parent.unwrap();
-        if let Err(_r) = fs::change_dir(parent, || self.select_first()) {
+        if let Err(_r) = fs::change_dir(parent, || ui::select_first(&mut self.left_rect_list.state))
+        {
             tracing::error!("Could not move to {:?}: {}", parent, _r);
         }
     }
@@ -255,7 +263,9 @@ impl App {
         let current_dir = &fs::current_dir().unwrap();
         if items_to_delete.contains(current_dir) {
             if let Some(parent) = current_dir.parent() {
-                if let Err(e) = fs::change_dir(parent, || self.select_first()) {
+                if let Err(e) =
+                    fs::change_dir(parent, || ui::select_first(&mut self.left_rect_list.state))
+                {
                     tracing::error!("Error while moving to parent of {:?}: {}", current_dir, e);
                     return;
                 }
@@ -277,6 +287,14 @@ impl App {
 
         self.input.clear();
     }
+
+    fn toggle_show_commands(&mut self) {
+        if self.mode != Mode::ShowingCommands {
+            self.mode = Mode::ShowingCommands;
+        } else {
+            self.mode = Mode::Normal;
+        }
+    }
 }
 
 fn byte_index(input: &Input) -> usize {
@@ -286,6 +304,10 @@ fn byte_index(input: &Input) -> usize {
         .map(|(i, _)| i)
         .nth(input.char_index)
         .unwrap_or(input.text.len())
+}
+
+fn get_commands() -> Vec<String> {
+    vec!["idk".to_string(), "second command".to_string()]
 }
 
 fn main() -> Result<()> {
