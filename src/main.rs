@@ -8,7 +8,7 @@ use debug::initialize_logging;
 use ratatui::prelude::*;
 use ratatui::widgets::ListState;
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode, KeyEventKind},
+    crossterm::event::{self, Event as CtEvent, KeyCode, KeyEventKind},
     widgets::Block,
     DefaultTerminal, Frame,
 };
@@ -122,7 +122,7 @@ impl App {
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.draw(frame))?;
-            if let Event::Key(key) = event::read()? {
+            if let CtEvent::Key(key) = event::read()? {
                 self.handle_key(key);
             };
         }
