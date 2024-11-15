@@ -151,6 +151,10 @@ impl App {
     }
 }
 
+fn get_commands() -> Vec<String> {
+    vec!["idk".to_string(), "second command".to_string()]
+}
+
 fn main() -> Result<()> {
     color_eyre::install()?;
     let _guard = initialize_logging()?;
