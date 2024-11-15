@@ -159,7 +159,7 @@ impl App {
                 frame.set_cursor_position(cursor_position)
             }
             Mode::ShowingCommands => {
-                let command_selector = ui::CommandPicker::new(get_commands());
+                let command_selector = ui::CommandPicker::new(get_event_names());
                 frame.render_stateful_widget(
                     command_selector,
                     frame.area(),
@@ -306,8 +306,8 @@ fn byte_index(input: &Input) -> usize {
         .unwrap_or(input.text.len())
 }
 
-fn get_commands() -> Vec<String> {
-    vec!["idk".to_string(), "second command".to_string()]
+fn get_event_names() -> Vec<String> {
+    get_events().iter().map(|c| get_event_name(c)).collect()
 }
 
 fn main() -> Result<()> {
@@ -370,7 +370,7 @@ fn handle_event(event: &Event) {
     todo!()
 }
 
-fn get_all_events() -> [Event; 16] {
+fn get_events() -> [Event; 16] {
     [
         Event::CreateItem,
         Event::Noop,
@@ -391,7 +391,7 @@ fn get_all_events() -> [Event; 16] {
     ]
 }
 
-fn get_event_name(event: &Event) -> String {
+pub fn get_event_name(event: &Event) -> String {
     match event {
         Event::CreateItem => "create_item",
         Event::Noop => "noop",
