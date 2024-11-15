@@ -322,6 +322,97 @@ fn main() -> Result<()> {
     app_result
 }
 
+enum Event {
+    CreateItem,
+    Noop,
+    DeleteChar,
+    MoveLeft,
+    MoveRight,
+    AddChar(String),
+    Quit,
+    MoveUp,
+    MoveDown,
+    MoveToParent,
+    MoveToChild,
+    ToggleHidden,
+    ToggleQueue,
+    DeleteQueue,
+    OpenCommandPicker,
+    CloseCommandPicker,
+}
+
+fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
+    match mode {
+        Mode::Normal => match code {
+            KeyCode::Char('q') => Event::Quit,
+            KeyCode::Up | KeyCode::Char('j') => Event::MoveUp,
+            KeyCode::Down | KeyCode::Char('k') => Event::MoveDown,
+            KeyCode::Left | KeyCode::Char('h') => Event::MoveToParent,
+            KeyCode::Right | KeyCode::Char('l') => Event::MoveToChild,
+            KeyCode::Char('.') => Event::ToggleHidden,
+            KeyCode::Char(' ') => Event::ToggleQueue,
+            KeyCode::Char('d') => Event::DeleteQueue,
+            KeyCode::Char('n') => Event::CreateItem,
+            KeyCode::Char('?') => Event::OpenCommandPicker,
+            _ => Event::Noop,
+        },
+        Mode::ShowingCommands => match code {
+            KeyCode::Esc | KeyCode::Char('q') => Event::CloseCommandPicker,
+            KeyCode::Up | KeyCode::Char('j') => Event::MoveUp,
+            KeyCode::Down | KeyCode::Char('k') => Event::MoveDown,
+            _ => Event::Noop,
+        },
+        Mode::Creating => Event::Noop,
+    }
+}
+
+fn handle_event(event: &Event) {
+    todo!()
+}
+
+fn get_all_events() -> [Event; 16] {
+    [
+        Event::CreateItem,
+        Event::Noop,
+        Event::DeleteChar,
+        Event::MoveLeft,
+        Event::MoveRight,
+        Event::AddChar("".to_string()),
+        Event::Quit,
+        Event::MoveUp,
+        Event::MoveDown,
+        Event::MoveToParent,
+        Event::MoveToChild,
+        Event::ToggleHidden,
+        Event::ToggleQueue,
+        Event::DeleteQueue,
+        Event::OpenCommandPicker,
+        Event::CloseCommandPicker,
+    ]
+}
+
+fn get_event_name(event: &Event) -> String {
+    match event {
+        Event::CreateItem => "create_item",
+        Event::Noop => "noop",
+        Event::DeleteChar => "delete.char",
+        Event::MoveLeft => "move_left",
+        Event::MoveRight => "move_right",
+        Event::AddChar(_) => "add_char",
+        Event::Quit => "quit",
+        Event::MoveUp => "move_up",
+        Event::MoveDown => "move_down",
+        Event::MoveToParent => "move_to_parent",
+        Event::MoveToChild => "move_to_child",
+        Event::ToggleHidden => "toggle_hidden",
+        Event::ToggleQueue => "toggle_queue",
+        Event::DeleteQueue => "delete_queue",
+        Event::OpenCommandPicker => "open_command_picker",
+        Event::CloseCommandPicker => "close_command_picker",
+    }
+    .to_string()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
