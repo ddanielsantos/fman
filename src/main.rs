@@ -151,8 +151,8 @@ impl App {
     }
 }
 
-fn get_commands() -> Vec<String> {
-    vec!["idk".to_string(), "second command".to_string()]
+fn get_event_names() -> Vec<String> {
+    get_events().iter().map(|c| get_event_name(c)).collect()
 }
 
 fn main() -> Result<()> {
