@@ -83,18 +83,6 @@ impl<'a> Styled for Input<'a> {
     }
 }
 
-pub fn move_up(state: &mut ListState) {
-    state.select_previous()
-}
-
-pub fn move_down(state: &mut ListState) {
-    state.select_next()
-}
-
-pub fn select_first(state: &mut ListState) {
-    state.select_first()
-}
-
 pub struct MainList {
     current_path: String,
     current_path_content: Vec<String>,

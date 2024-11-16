@@ -1,14 +1,16 @@
 mod debug;
+mod event;
 mod fs;
 mod ui;
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
 use debug::initialize_logging;
+use ratatui::crossterm::event::read;
 use ratatui::prelude::*;
 use ratatui::widgets::ListState;
 use ratatui::{
-    crossterm::event::{self, Event as CtEvent, KeyCode, KeyEventKind},
+    crossterm::event::{self as ctevent, Event as CtEvent, KeyEventKind},
     widgets::Block,
     DefaultTerminal, Frame,
 };
@@ -58,46 +60,6 @@ impl Input {
             text,
         }
     }
-
-    fn clear(&mut self) {
-        self.text.clear();
-        self.char_index = 0;
-    }
-
-    fn insert(&mut self, idx: usize, c: char) {
-        self.text.insert(idx, c);
-    }
-
-    fn move_to_right(&mut self) {
-        let new_index = self.char_index.saturating_add(1);
-        self.char_index = self.clamp_index(new_index);
-    }
-
-    fn clamp_index(&self, new_index: usize) -> usize {
-        new_index.clamp(0, self.text.chars().count())
-    }
-
-    fn move_to_left(&mut self) {
-        let new_index = self.char_index.saturating_sub(1);
-        self.char_index = self.clamp_index(new_index);
-    }
-
-    fn add_char(&mut self, c: char) {
-        let idx = byte_index(self);
-        self.insert(idx, c);
-        self.move_to_right();
-    }
-
-    fn delete_char(&mut self) {
-        let idx = byte_index(self).saturating_sub(1);
-
-        if self.char_index == 0 {
-            return;
-        }
-
-        self.text.remove(idx);
-        self.move_to_left();
-    }
 }
 
 #[derive(Debug, Default)]
@@ -122,7 +84,7 @@ impl App {
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.draw(frame))?;
-            if let CtEvent::Key(key) = event::read()? {
+            if let CtEvent::Key(key) = read()? {
                 self.handle_key(key);
             };
         }
@@ -159,7 +121,7 @@ impl App {
                 frame.set_cursor_position(cursor_position)
             }
             Mode::ShowingCommands => {
-                let command_selector = ui::CommandPicker::new(get_event_names());
+                let command_selector = ui::CommandPicker::new(event::get_event_names());
                 frame.render_stateful_widget(
                     command_selector,
                     frame.area(),
@@ -170,144 +132,19 @@ impl App {
         }
     }
 
-    fn handle_key(&mut self, key: event::KeyEvent) {
+    fn handle_key(&mut self, key: ctevent::KeyEvent) {
         if key.kind != KeyEventKind::Press {
             return;
         }
 
-        match self.mode {
-            Mode::Creating => match key.code {
-                KeyCode::Enter => self.create_items(),
-                KeyCode::Char(c) => self.input.add_char(c),
-                KeyCode::Backspace => self.input.delete_char(),
-                KeyCode::Left => self.input.move_to_left(),
-                KeyCode::Right => self.input.move_to_right(),
-                _ => (),
-            },
-            Mode::Normal => match key.code {
-                KeyCode::Char('q') => self.should_quit = true,
-                KeyCode::Up | KeyCode::Char('j') => ui::move_up(&mut self.left_rect_list.state),
-                KeyCode::Down | KeyCode::Char('k') => ui::move_down(&mut self.left_rect_list.state),
-                KeyCode::Left | KeyCode::Char('h') => self.move_to_parent(),
-                KeyCode::Right | KeyCode::Char('l') => self.move_to_child(),
-                KeyCode::Char('.') => self.toggle_show_hidden(),
-                KeyCode::Char(' ') => self.toggle_presence_on_queue(),
-                KeyCode::Char('d') => self.delete_queued_items(),
-                KeyCode::Char('n') => self.change_to_creating_mode(),
-                KeyCode::Char('?') => self.toggle_show_commands(),
-                _ => (),
-            },
-            Mode::ShowingCommands => match key.code {
-                KeyCode::Esc | KeyCode::Char('q') => self.toggle_show_commands(),
-                KeyCode::Up | KeyCode::Char('j') => ui::move_up(&mut self.command_list.state),
-                KeyCode::Down | KeyCode::Char('k') => ui::move_down(&mut self.command_list.state),
-                _ => (),
-            },
-        }
-    }
-
-    fn move_to_child(&mut self) {
-        if let Some(index) = self.left_rect_list.state.selected() {
-            let new_path = &self.left_rect_list.items[index].path();
-            if !new_path.is_dir() {
-                return;
-            }
-
-            if let Err(_r) = fs::change_dir(new_path, || {
-                ui::select_first(&mut self.left_rect_list.state)
-            }) {
-                tracing::error!("Could not move to child dir {:?}", new_path);
-            }
-        }
-    }
-
-    fn move_to_parent(&mut self) {
-        let parent = fs::current_dir().unwrap().parent().map(|p| p.to_path_buf());
-
-        if parent.is_none() {
-            return;
-        }
-
-        let parent = &parent.unwrap();
-        if let Err(_r) = fs::change_dir(parent, || ui::select_first(&mut self.left_rect_list.state))
-        {
-            tracing::error!("Could not move to {:?}: {}", parent, _r);
-        }
+        let event = event::get_event(&self.mode, &key.code);
+        event::handle_event(&event, self);
     }
 
     fn update_content(&mut self, content: Vec<DirEntry>) -> &Vec<DirEntry> {
         self.left_rect_list.items = content;
         &self.left_rect_list.items
     }
-
-    fn toggle_show_hidden(&mut self) {
-        self.show_hidden = !self.show_hidden;
-    }
-
-    fn toggle_presence_on_queue(&mut self) {
-        if let Some(index) = self.left_rect_list.state.selected() {
-            let item = self.left_rect_list.items[index].path();
-            if self.queued_items.contains(&item) {
-                self.queued_items.remove(&item);
-            } else {
-                self.queued_items.insert(item);
-            }
-        }
-    }
-
-    fn delete_queued_items(&mut self) {
-        let mut items_to_delete: Vec<PathBuf> = self.queued_items.iter().cloned().collect();
-
-        items_to_delete.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
-
-        let current_dir = &fs::current_dir().unwrap();
-        if items_to_delete.contains(current_dir) {
-            if let Some(parent) = current_dir.parent() {
-                if let Err(e) =
-                    fs::change_dir(parent, || ui::select_first(&mut self.left_rect_list.state))
-                {
-                    tracing::error!("Error while moving to parent of {:?}: {}", current_dir, e);
-                    return;
-                }
-            }
-        }
-
-        fs::delete_all(items_to_delete);
-    }
-
-    fn change_to_creating_mode(&mut self) {
-        self.mode = Mode::Creating;
-        self.input = Input::new(fs::current_dir().unwrap().display().to_string())
-    }
-
-    fn create_items(&mut self) {
-        self.mode = Mode::Normal;
-
-        fs::create_path(&self.input.text);
-
-        self.input.clear();
-    }
-
-    fn toggle_show_commands(&mut self) {
-        if self.mode != Mode::ShowingCommands {
-            self.mode = Mode::ShowingCommands;
-        } else {
-            self.mode = Mode::Normal;
-        }
-    }
-}
-
-fn byte_index(input: &Input) -> usize {
-    input
-        .text
-        .char_indices()
-        .map(|(i, _)| i)
-        .nth(input.char_index)
-        .unwrap_or(input.text.len())
-}
-
-fn get_event_names() -> Vec<String> {
-    get_events().iter().map(|c| get_event_name(c)).collect()
 }
 
 fn main() -> Result<()> {
@@ -320,111 +157,4 @@ fn main() -> Result<()> {
     ratatui::restore();
 
     app_result
-}
-
-enum Event {
-    CreateItem,
-    Noop,
-    DeleteChar,
-    MoveLeft,
-    MoveRight,
-    AddChar(String),
-    Quit,
-    MoveUp,
-    MoveDown,
-    MoveToParent,
-    MoveToChild,
-    ToggleHidden,
-    ToggleQueue,
-    DeleteQueue,
-    OpenCommandPicker,
-    CloseCommandPicker,
-}
-
-fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
-    match mode {
-        Mode::Normal => match code {
-            KeyCode::Char('q') => Event::Quit,
-            KeyCode::Up | KeyCode::Char('j') => Event::MoveUp,
-            KeyCode::Down | KeyCode::Char('k') => Event::MoveDown,
-            KeyCode::Left | KeyCode::Char('h') => Event::MoveToParent,
-            KeyCode::Right | KeyCode::Char('l') => Event::MoveToChild,
-            KeyCode::Char('.') => Event::ToggleHidden,
-            KeyCode::Char(' ') => Event::ToggleQueue,
-            KeyCode::Char('d') => Event::DeleteQueue,
-            KeyCode::Char('n') => Event::CreateItem,
-            KeyCode::Char('?') => Event::OpenCommandPicker,
-            _ => Event::Noop,
-        },
-        Mode::ShowingCommands => match code {
-            KeyCode::Esc | KeyCode::Char('q') => Event::CloseCommandPicker,
-            KeyCode::Up | KeyCode::Char('j') => Event::MoveUp,
-            KeyCode::Down | KeyCode::Char('k') => Event::MoveDown,
-            _ => Event::Noop,
-        },
-        Mode::Creating => Event::Noop,
-    }
-}
-
-fn handle_event(event: &Event) {
-    todo!()
-}
-
-fn get_events() -> [Event; 16] {
-    [
-        Event::CreateItem,
-        Event::Noop,
-        Event::DeleteChar,
-        Event::MoveLeft,
-        Event::MoveRight,
-        Event::AddChar("".to_string()),
-        Event::Quit,
-        Event::MoveUp,
-        Event::MoveDown,
-        Event::MoveToParent,
-        Event::MoveToChild,
-        Event::ToggleHidden,
-        Event::ToggleQueue,
-        Event::DeleteQueue,
-        Event::OpenCommandPicker,
-        Event::CloseCommandPicker,
-    ]
-}
-
-pub fn get_event_name(event: &Event) -> String {
-    match event {
-        Event::CreateItem => "create_item",
-        Event::Noop => "noop",
-        Event::DeleteChar => "delete.char",
-        Event::MoveLeft => "move_left",
-        Event::MoveRight => "move_right",
-        Event::AddChar(_) => "add_char",
-        Event::Quit => "quit",
-        Event::MoveUp => "move_up",
-        Event::MoveDown => "move_down",
-        Event::MoveToParent => "move_to_parent",
-        Event::MoveToChild => "move_to_child",
-        Event::ToggleHidden => "toggle_hidden",
-        Event::ToggleQueue => "toggle_queue",
-        Event::DeleteQueue => "delete_queue",
-        Event::OpenCommandPicker => "open_command_picker",
-        Event::CloseCommandPicker => "close_command_picker",
-    }
-    .to_string()
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn idk() {
-        let input = Input {
-            char_index: 6,
-            text: "とラストガエル".to_string(),
-        };
-
-        let actual = byte_index(&input);
-        assert_eq!(actual, 18);
-    }
 }
