@@ -8,7 +8,6 @@ use crate::Mode;
 
 pub fn handle_event(event: &Event, app: &mut App) {
     match event {
-        Event::CreateItem => change_to_creating_mode(app),
         Event::DeleteChar => delete_char(&mut app.input),
         Event::MoveLeft => move_to_left(&mut app.input),
         Event::MoveRight => move_to_right(&mut app.input),
@@ -22,9 +21,25 @@ pub fn handle_event(event: &Event, app: &mut App) {
         Event::ToggleQueue => toggle_presence_on_queue(app),
         Event::DeleteQueue => delete_queued_items(app),
         Event::ToggleCommands => toggle_show_commands(app),
+        Event::ExecuteCommand => execute_command(app),
         Event::ChangeToCreating => change_to_creating_mode(app),
         Event::ConfirmCreation => create_items(app),
         Event::Noop => {}
+    }
+}
+
+fn execute_command(app: &mut App) {
+    if let Some(index) = app.command_list.state.selected() {
+        let second_hand_event = app.command_list.items[index].clone();
+
+        match second_hand_event {
+            Event::Noop | Event::ExecuteCommand | Event::AddChar(_) | Event::ToggleCommands => {}
+            _ => {
+                handle_event(&second_hand_event, app);
+            }
+        }
+
+        toggle_show_commands(app);
     }
 }
 
@@ -106,6 +121,7 @@ fn toggle_show_commands(app: &mut App) {
     } else {
         app.mode = Mode::Normal;
     }
+    tracing::debug!("{:?}", app.mode);
 }
 
 fn move_down(app: &mut App) {

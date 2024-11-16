@@ -6,14 +6,13 @@ mod ui;
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
 use debug::initialize_logging;
+use event::Event;
 use ratatui::crossterm::event::read;
+use ratatui::crossterm::event::Event::Key;
+use ratatui::crossterm::event::KeyEvent;
 use ratatui::prelude::*;
 use ratatui::widgets::ListState;
-use ratatui::{
-    crossterm::event::{self as ctevent, Event as CtEvent, KeyEventKind},
-    widgets::Block,
-    DefaultTerminal, Frame,
-};
+use ratatui::{crossterm::event::KeyEventKind, widgets::Block, DefaultTerminal, Frame};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::DirEntry;
@@ -50,6 +49,7 @@ struct Input {
 
 #[derive(Debug, Default)]
 struct CommandList {
+    items: Vec<Event>,
     state: ListState,
 }
 
@@ -84,7 +84,7 @@ impl App {
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.draw(frame))?;
-            if let CtEvent::Key(key) = read()? {
+            if let Key(key) = read()? {
                 self.handle_key(key);
             };
         }
@@ -121,7 +121,11 @@ impl App {
                 frame.set_cursor_position(cursor_position)
             }
             Mode::ShowingCommands => {
-                let command_selector = ui::CommandPicker::new(event::get_event_names());
+                let events = event::get_events();
+                self.command_list.items = events.to_vec();
+
+                let command_selector =
+                    ui::CommandPicker::new(events.iter().map(event::get_event_name).collect());
                 frame.render_stateful_widget(
                     command_selector,
                     frame.area(),
@@ -132,7 +136,7 @@ impl App {
         }
     }
 
-    fn handle_key(&mut self, key: ctevent::KeyEvent) {
+    fn handle_key(&mut self, key: KeyEvent) {
         if key.kind != KeyEventKind::Press {
             return;
         }

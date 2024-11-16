@@ -5,8 +5,8 @@ pub use handler::handle_event;
 
 mod handler;
 
+#[derive(Debug, Clone)]
 pub enum Event {
-    CreateItem,
     Noop,
     DeleteChar,
     MoveLeft,
@@ -23,6 +23,7 @@ pub enum Event {
     ToggleCommands,
     ChangeToCreating,
     ConfirmCreation,
+    ExecuteCommand,
 }
 
 pub fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
@@ -44,6 +45,7 @@ pub fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
             KeyCode::Esc | KeyCode::Char('q') => Event::ToggleCommands,
             KeyCode::Up | KeyCode::Char('j') => Event::MoveUp,
             KeyCode::Down | KeyCode::Char('k') => Event::MoveDown,
+            KeyCode::Enter => Event::ExecuteCommand,
             _ => Event::Noop,
         },
         Mode::Creating => match code {
@@ -57,9 +59,8 @@ pub fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
     }
 }
 
-fn get_events() -> [Event; 15] {
+pub fn get_events() -> [Event; 15] {
     [
-        Event::CreateItem,
         Event::Noop,
         Event::DeleteChar,
         Event::MoveLeft,
@@ -74,14 +75,14 @@ fn get_events() -> [Event; 15] {
         Event::ToggleQueue,
         Event::DeleteQueue,
         Event::ToggleCommands,
+        Event::ExecuteCommand,
     ]
 }
 
-fn get_event_name(event: &Event) -> String {
+pub fn get_event_name(event: &Event) -> String {
     match event {
-        Event::CreateItem => "create_item",
-        Event::DeleteChar => "delete.char",
-        Event::MoveLeft => "move_left",
+        Event::DeleteChar => "delete_char (d)",
+        Event::MoveLeft => "move_left (<-, h)",
         Event::MoveRight => "move_right",
         Event::AddChar(_) => "add_char",
         Event::Quit => "quit",
@@ -95,11 +96,8 @@ fn get_event_name(event: &Event) -> String {
         Event::ToggleCommands => "toggle_commands",
         Event::ChangeToCreating => "change_to_creating",
         Event::ConfirmCreation => "confirm_creation",
+        Event::ExecuteCommand => "execute_command",
         Event::Noop => "noop",
     }
     .to_string()
-}
-
-pub fn get_event_names() -> Vec<String> {
-    get_events().iter().map(get_event_name).collect()
 }
