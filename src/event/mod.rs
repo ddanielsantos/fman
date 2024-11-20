@@ -59,7 +59,7 @@ pub fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
     }
 }
 
-pub fn get_events() -> [Event; 15] {
+fn get_events() -> [Event; 15] {
     [
         Event::Noop,
         Event::DeleteChar,
@@ -100,4 +100,23 @@ pub fn get_event_name(event: &Event) -> String {
         Event::Noop => "noop",
     }
     .to_string()
+}
+
+pub fn in_reexecution_allow_list(event: &Event) -> bool {
+    match event {
+        Event::Noop
+        | Event::ExecuteCommand
+        | Event::AddChar(_)
+        | Event::ToggleCommands
+        | Event::MoveLeft
+        | Event::MoveRight => false,
+        _ => true,
+    }
+}
+
+pub fn get_command_picker_events() -> Vec<Event> {
+    get_events()
+        .into_iter()
+        .filter(in_reexecution_allow_list)
+        .collect()
 }

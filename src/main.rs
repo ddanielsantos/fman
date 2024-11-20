@@ -121,11 +121,11 @@ impl App {
                 frame.set_cursor_position(cursor_position)
             }
             Mode::ShowingCommands => {
-                let events = event::get_events();
-                self.command_list.items = events.to_vec();
-
+                let events = event::get_command_picker_events();
                 let command_selector =
                     ui::CommandPicker::new(events.iter().map(event::get_event_name).collect());
+
+                self.command_list.items = events;
                 frame.render_stateful_widget(
                     command_selector,
                     frame.area(),

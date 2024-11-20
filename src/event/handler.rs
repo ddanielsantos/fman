@@ -6,6 +6,8 @@ use crate::App;
 use crate::Input;
 use crate::Mode;
 
+use super::in_reexecution_allow_list;
+
 pub fn handle_event(event: &Event, app: &mut App) {
     match event {
         Event::DeleteChar => delete_char(&mut app.input),
@@ -32,11 +34,8 @@ fn execute_command(app: &mut App) {
     if let Some(index) = app.command_list.state.selected() {
         let second_hand_event = app.command_list.items[index].clone();
 
-        match second_hand_event {
-            Event::Noop | Event::ExecuteCommand | Event::AddChar(_) | Event::ToggleCommands => {}
-            _ => {
-                handle_event(&second_hand_event, app);
-            }
+        if in_reexecution_allow_list(&second_hand_event) {
+            handle_event(&second_hand_event, app);
         }
 
         toggle_show_commands(app);
