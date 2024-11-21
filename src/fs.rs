@@ -130,3 +130,7 @@ pub fn create_path<P: Into<PathBuf>>(path: P) {
         tracing::error!("Could not create file {}", e);
     };
 }
+
+pub fn get_delimiter() -> &'static str {
+    std::path::MAIN_SEPARATOR_STR
+}
