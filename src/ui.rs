@@ -1,3 +1,4 @@
+use crate::fs::get_delimiter;
 use ratatui::{
     layout::Rect,
     style::{palette::tailwind::SLATE, Modifier, Style, Styled},
@@ -64,8 +65,12 @@ impl Widget for Input<'_> {
         } else {
             area
         };
+        let delimiter = get_delimiter();
+
         Clear.render(popup_rect, buf);
-        let block = Block::bordered().border_type(ratatui::widgets::BorderType::Rounded);
+        let block = Block::bordered()
+            .title_top(format!("create item or folders ({} ended)", delimiter))
+            .border_type(ratatui::widgets::BorderType::Rounded);
         Paragraph::new(self.input.text.as_str())
             .block(block)
             .render(popup_rect, buf);
