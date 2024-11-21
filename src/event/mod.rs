@@ -2,6 +2,7 @@ use ratatui::crossterm::event::KeyCode;
 
 use crate::Mode;
 pub use handler::handle_event;
+use Event::*;
 
 mod handler;
 
@@ -29,87 +30,85 @@ pub enum Event {
 pub fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
     match mode {
         Mode::Normal => match code {
-            KeyCode::Char('q') => Event::Quit,
-            KeyCode::Up | KeyCode::Char('j') => Event::MoveUp,
-            KeyCode::Down | KeyCode::Char('k') => Event::MoveDown,
-            KeyCode::Left | KeyCode::Char('h') => Event::MoveToParent,
-            KeyCode::Right | KeyCode::Char('l') => Event::MoveToChild,
-            KeyCode::Char('.') => Event::ToggleHidden,
-            KeyCode::Char(' ') => Event::ToggleQueue,
-            KeyCode::Char('d') => Event::DeleteQueue,
-            KeyCode::Char('n') => Event::ChangeToCreating,
-            KeyCode::Char('?') => Event::ToggleCommands,
-            _ => Event::Noop,
+            KeyCode::Char('q') => Quit,
+            KeyCode::Up | KeyCode::Char('j') => MoveUp,
+            KeyCode::Down | KeyCode::Char('k') => MoveDown,
+            KeyCode::Left | KeyCode::Char('h') => MoveToParent,
+            KeyCode::Right | KeyCode::Char('l') => MoveToChild,
+            KeyCode::Char('.') => ToggleHidden,
+            KeyCode::Char(' ') => ToggleQueue,
+            KeyCode::Char('d') => DeleteQueue,
+            KeyCode::Char('n') => ChangeToCreating,
+            KeyCode::Char('?') => ToggleCommands,
+            _ => Noop,
         },
         Mode::ShowingCommands => match code {
-            KeyCode::Esc | KeyCode::Char('q') => Event::ToggleCommands,
-            KeyCode::Up | KeyCode::Char('j') => Event::MoveUp,
-            KeyCode::Down | KeyCode::Char('k') => Event::MoveDown,
-            KeyCode::Enter => Event::ExecuteCommand,
-            _ => Event::Noop,
+            KeyCode::Esc | KeyCode::Char('q') => ToggleCommands,
+            KeyCode::Up | KeyCode::Char('j') => MoveUp,
+            KeyCode::Down | KeyCode::Char('k') => MoveDown,
+            KeyCode::Enter => ExecuteCommand,
+            _ => Noop,
         },
         Mode::Creating => match code {
-            KeyCode::Enter => Event::ConfirmCreation,
-            KeyCode::Char(c) => Event::AddChar(c.to_string()),
-            KeyCode::Backspace => Event::DeleteChar,
-            KeyCode::Left => Event::MoveLeft,
-            KeyCode::Right => Event::MoveRight,
-            _ => Event::Noop,
+            KeyCode::Enter => ConfirmCreation,
+            KeyCode::Char(c) => AddChar(c.to_string()),
+            KeyCode::Backspace => DeleteChar,
+            KeyCode::Left => MoveLeft,
+            KeyCode::Right => MoveRight,
+            _ => Noop,
         },
     }
 }
 
-fn get_events() -> [Event; 15] {
+fn get_events() -> [Event; 17] {
     [
-        Event::Noop,
-        Event::DeleteChar,
-        Event::MoveLeft,
-        Event::MoveRight,
-        Event::AddChar("".to_string()),
-        Event::Quit,
-        Event::MoveUp,
-        Event::MoveDown,
-        Event::MoveToParent,
-        Event::MoveToChild,
-        Event::ToggleHidden,
-        Event::ToggleQueue,
-        Event::DeleteQueue,
-        Event::ToggleCommands,
-        Event::ExecuteCommand,
+        Noop,
+        DeleteChar,
+        MoveLeft,
+        MoveRight,
+        AddChar("".to_string()),
+        Quit,
+        MoveUp,
+        MoveDown,
+        MoveToParent,
+        MoveToChild,
+        ToggleHidden,
+        ToggleQueue,
+        DeleteQueue,
+        ToggleCommands,
+        ChangeToCreating,
+        ConfirmCreation,
+        ExecuteCommand,
     ]
 }
 
 pub fn get_event_name(event: &Event) -> String {
     match event {
-        Event::DeleteChar => "delete_char (d)",
-        Event::MoveLeft => "move_left (<-, h)",
-        Event::MoveRight => "move_right",
-        Event::AddChar(_) => "add_char",
-        Event::Quit => "quit",
-        Event::MoveUp => "move_up",
-        Event::MoveDown => "move_down",
-        Event::MoveToParent => "move_to_parent",
-        Event::MoveToChild => "move_to_child",
-        Event::ToggleHidden => "toggle_hidden",
-        Event::ToggleQueue => "toggle_queue",
-        Event::DeleteQueue => "delete_queue",
-        Event::ToggleCommands => "toggle_commands",
-        Event::ChangeToCreating => "change_to_creating",
-        Event::ConfirmCreation => "confirm_creation",
-        Event::ExecuteCommand => "execute_command",
-        Event::Noop => "noop",
+        DeleteChar => "delete char",
+        MoveLeft => "move left",
+        MoveRight => "move right",
+        AddChar(_) => "add char",
+        Quit => "(q) quit",
+        MoveUp => "(↑ | k) move up",
+        MoveDown => "(↓ | j) move down",
+        MoveToParent => "(← | h) move to parent",
+        MoveToChild => "(→ | l) move to child",
+        ToggleHidden => "(.) toggle hidden",
+        ToggleQueue => "(<Space>) toggle queue",
+        DeleteQueue => "(d) delete queue",
+        ToggleCommands => "(?) toggle commands",
+        ChangeToCreating => "(n) create folder/file",
+        ConfirmCreation => "(<Enter>) confirm creation",
+        ExecuteCommand => "(<Enter>) execute command",
+        Noop => "noop",
     }
     .to_string()
 }
 
 pub fn in_reexecution_allow_list(event: &Event) -> bool {
     match event {
-        Event::Noop
-        | Event::ExecuteCommand
-        | Event::AddChar(_)
-        | Event::ToggleCommands
-        | Event::MoveLeft
-        | Event::MoveRight => false,
+        Noop | ExecuteCommand | AddChar(_) | DeleteChar | ConfirmCreation | ToggleCommands
+        | MoveLeft | MoveRight => false,
         _ => true,
     }
 }
