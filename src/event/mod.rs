@@ -25,6 +25,7 @@ pub enum Event {
     ChangeToCreating,
     ConfirmCreation,
     ExecuteCommand,
+    CancelCreation,
 }
 
 pub fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
@@ -50,6 +51,7 @@ pub fn get_event<'a>(mode: &'a Mode, code: &'a KeyCode) -> Event {
             _ => Noop,
         },
         Mode::Creating => match code {
+            KeyCode::Esc => CancelCreation,
             KeyCode::Enter => ConfirmCreation,
             KeyCode::Char(c) => AddChar(c.to_string()),
             KeyCode::Backspace => DeleteChar,
@@ -100,6 +102,7 @@ pub fn get_event_name(event: &Event) -> String {
         ChangeToCreating => "(n) create folder/file",
         ConfirmCreation => "(<Enter>) confirm creation",
         ExecuteCommand => "(<Enter>) execute command",
+        CancelCreation => "(<Esc>) cancel creation",
         Noop => "noop",
     }
     .to_string()
@@ -108,7 +111,7 @@ pub fn get_event_name(event: &Event) -> String {
 pub fn in_reexecution_allow_list(event: &Event) -> bool {
     match event {
         Noop | ExecuteCommand | AddChar(_) | DeleteChar | ConfirmCreation | ToggleCommands
-        | MoveLeft | MoveRight => false,
+        | CancelCreation | MoveLeft | MoveRight => false,
         _ => true,
     }
 }
