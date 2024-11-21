@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10](https://github.com/ddanielsantos/fman/compare/v0.1.9...v0.1.10) - 2024-11-21
+
+### Added
+
+- improve create item ui ([#38](https://github.com/ddanielsantos/fman/pull/38))
+- command picker ([#36](https://github.com/ddanielsantos/fman/pull/36))
+
+### Fixed
+
+- *(deps)* update rust crate clap to v4.5.21 ([#35](https://github.com/ddanielsantos/fman/pull/35))
+- *(deps)* update rust crate ratatui to 0.29.0 ([#33](https://github.com/ddanielsantos/fman/pull/33))
+
+### Other
+
+- renovate.json ([#31](https://github.com/ddanielsantos/fman/pull/31))
+
 ## [0.1.9](https://github.com/ddanielsantos/fman/compare/v0.1.8...v0.1.9) - 2024-11-07
 
 ### Other
