@@ -26,6 +26,7 @@ pub fn handle_event(event: &Event, app: &mut App) {
         Event::ExecuteCommand => execute_command(app),
         Event::ChangeToCreating => change_to_creating_mode(app),
         Event::ConfirmCreation => create_items(app),
+        Event::CancelCreation => cancel_creation(app),
         Event::Noop => {}
     }
 }
@@ -192,4 +193,8 @@ fn byte_index(input: &Input) -> usize {
         .map(|(i, _)| i)
         .nth(input.char_index)
         .unwrap_or(input.text.len())
+}
+
+fn cancel_creation(app: &mut App) {
+    app.mode = Mode::Normal;
 }
