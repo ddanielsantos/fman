@@ -11,7 +11,7 @@ use ratatui::crossterm::event::read;
 use ratatui::crossterm::event::Event::Key;
 use ratatui::crossterm::event::KeyEvent;
 use ratatui::prelude::*;
-use ratatui::widgets::ListState;
+use ratatui::widgets::{Clear, ListState, Paragraph};
 use ratatui::{crossterm::event::KeyEventKind, widgets::Block, DefaultTerminal, Frame};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -115,10 +115,31 @@ impl App {
 
         match self.mode {
             Mode::Creating => {
-                let input_popup = ui::Input::new(&self.input).popup();
-                let cursor_position = input_popup.get_cursor_position(frame.area());
-                frame.render_widget(input_popup, frame.area());
-                frame.set_cursor_position(cursor_position)
+                let input = tui_input::Input::new(self.input.text.clone());
+                let area = frame.area();
+                let rect = Rect {
+                    x: area.width / 4,
+                    y: area.height / 3,
+                    width: area.width / 2,
+                    height: 3,
+                };
+                let c_i = self.input.char_index;
+
+                let delimiter = fs::get_delimiter();
+                let block = Block::bordered()
+                    .title_top(format!(
+                        "create item or folders ({} ended) #{}#",
+                        delimiter, c_i
+                    ))
+                    .border_type(ratatui::widgets::BorderType::Rounded);
+                let scroll_offset = rect.width - 2;
+                let scroll = input.visual_scroll(scroll_offset.into()) as u16;
+                let p = Paragraph::new(input.value())
+                    .block(block)
+                    .scroll((0, scroll));
+
+                frame.render_widget(Clear, rect);
+                frame.render_widget(p, rect);
             }
             Mode::ShowingCommands => {
                 let events = event::get_command_picker_events();
