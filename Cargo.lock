@@ -339,6 +339,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "tui-input",
 ]
 
 [[package]]
@@ -1020,6 +1021,16 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tui-input"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5d1733c47f1a217b7deff18730ff7ca4ecafc5771368f715ab072d679a36114"
+dependencies = [
+ "ratatui",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]

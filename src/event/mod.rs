@@ -109,11 +109,17 @@ pub fn get_event_name(event: &Event) -> String {
 }
 
 pub fn in_reexecution_allow_list(event: &Event) -> bool {
-    match event {
-        Noop | ExecuteCommand | AddChar(_) | DeleteChar | ConfirmCreation | ToggleCommands
-        | CancelCreation | MoveLeft | MoveRight => false,
-        _ => true,
-    }
+    !matches!(
+        event,
+        Noop | ExecuteCommand
+            | AddChar(_)
+            | DeleteChar
+            | ConfirmCreation
+            | ToggleCommands
+            | CancelCreation
+            | MoveLeft
+            | MoveRight
+    )
 }
 
 pub fn get_command_picker_events() -> Vec<Event> {
