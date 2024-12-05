@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11](https://github.com/ddanielsantos/fman/compare/v0.1.10...v0.1.11) - 2024-12-05
+
+### Added
+
+- add scroll to input ([#43](https://github.com/ddanielsantos/fman/pull/43))
+
+### Fixed
+
+- *(deps)* update rust crate clap to v4.5.22 ([#44](https://github.com/ddanielsantos/fman/pull/44))
+- *(deps)* update rust crate tracing-subscriber to v0.3.19 ([#42](https://github.com/ddanielsantos/fman/pull/42))
+- *(deps)* update rust crate tracing to v0.1.41 ([#39](https://github.com/ddanielsantos/fman/pull/39))
+- add missing parameter from cross-compile action ([#40](https://github.com/ddanielsantos/fman/pull/40))
+
 ## [0.1.10](https://github.com/ddanielsantos/fman/compare/v0.1.9...v0.1.10) - 2024-11-21
 
 ### Added
