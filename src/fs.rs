@@ -17,7 +17,7 @@ pub fn current_dir() -> Result<PathBuf> {
 }
 
 pub fn dir_entry_to_string(de: &DirEntry) -> String {
-    de.path().display().to_string()
+    de.file_name().into_string().unwrap()
 }
 
 pub fn get_content<P: AsRef<Path>>(path: P, show_hidden: bool) -> Vec<DirEntry> {
