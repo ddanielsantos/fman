@@ -123,14 +123,9 @@ impl App {
                     width: area.width / 2,
                     height: 3,
                 };
-                let c_i = self.input.char_index;
-
                 let delimiter = fs::get_delimiter();
                 let block = Block::bordered()
-                    .title_top(format!(
-                        "create item or folders ({} ended) #{}#",
-                        delimiter, c_i
-                    ))
+                    .title_top(format!("create item or folders ({} ended)", delimiter))
                     .border_type(ratatui::widgets::BorderType::Rounded);
                 let scroll_offset = rect.width - 2;
                 let scroll = input.visual_scroll(scroll_offset.into()) as u16;
