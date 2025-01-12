@@ -9,7 +9,7 @@ repository = "https://github.com/ddanielsantos/fman"
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 color-eyre = "0.6.3"
-directories = "5.0.1"
+directories = "6.0.0"
 lazy_static = "1.5.0"
 ratatui = "0.29.0"
 tracing = "0.1.40"
