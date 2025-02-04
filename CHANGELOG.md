@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13](https://github.com/ddanielsantos/fman/compare/v0.1.12...v0.1.13) - 2025-02-04
+
+### Fixed
+
+- *(deps)* update rust crate clap to v4.5.28 (#45)
+- *(deps)* update rust crate directories to v6 (#48)
+
+### Other
+
+- Revert "fix(deps): update rust crate clap to v4.5.28 ([#45](https://github.com/ddanielsantos/fman/pull/45))" ([#50](https://github.com/ddanielsantos/fman/pull/50))
+
 ## [0.1.12](https://github.com/ddanielsantos/fman/compare/v0.1.11...v0.1.12) - 2024-12-16
 
 ### Added
