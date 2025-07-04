@@ -5,7 +5,6 @@ mod ui;
 
 use clap::Parser;
 use color_eyre::{eyre::Context, Result};
-use debug::initialize_logging;
 use event::Event;
 use ratatui::crossterm::event::read;
 use ratatui::crossterm::event::Event::Key;
@@ -15,8 +14,13 @@ use ratatui::widgets::{Clear, ListState, Paragraph};
 use ratatui::{crossterm::event::KeyEventKind, widgets::Block, DefaultTerminal, Frame};
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::fs::DirEntry;
+use std::fs::{DirEntry, File};
 use std::path::PathBuf;
+use tracing::Level;
+use tracing_appender::non_blocking;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::fmt::time;
+use crate::debug::get_dir_and_log_file_path;
 
 #[derive(Parser, Debug, Default)]
 #[command(version, long_about = None)]
@@ -169,7 +173,25 @@ impl App {
 
 fn main() -> Result<()> {
     color_eyre::install()?;
-    let _guard = initialize_logging()?;
+    let result = time::OffsetTime::local_rfc_3339();
+    let (dir, file_path) = get_dir_and_log_file_path();
+    std::fs::create_dir_all(dir)?;
+
+    let file = File::create(file_path).wrap_err("failed to create log file")?;
+    let (non_blocking, _guard) = non_blocking(file);
+
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(Level::DEBUG.into())
+        .from_env_lossy();
+
+    tracing_subscriber::fmt()
+        .with_file(true)
+        .with_ansi(false)
+        .with_timer(result.expect("could not get local time offset"))
+        .with_line_number(true)
+        .with_writer(non_blocking)
+        .with_env_filter(env_filter)
+        .init();
 
     let terminal = ratatui::init();
     let app_result = App::with_args().run(terminal).context("app loop failed");
