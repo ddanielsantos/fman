@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13](https://github.com/ddanielsantos/fman/compare/v0.1.12...v0.1.13) - 2025-08-11
+
+### Fixed
+
+- *(deps)* update rust crate clap to v4.5.41 ([#57](https://github.com/ddanielsantos/fman/pull/57))
+- *(deps)* update rust crate clap to v4.5.40 ([#51](https://github.com/ddanielsantos/fman/pull/51))
+- *(deps)* update rust crate color-eyre to v0.6.5 ([#53](https://github.com/ddanielsantos/fman/pull/53))
+- *(deps)* update rust crate tui-input to 0.14.0 ([#52](https://github.com/ddanielsantos/fman/pull/52))
+- inline local_rfc_3339 ([#55](https://github.com/ddanielsantos/fman/pull/55))
+- *(deps)* update rust crate clap to v4.5.28 ([#45](https://github.com/ddanielsantos/fman/pull/45))
+- *(deps)* update rust crate directories to v6 ([#48](https://github.com/ddanielsantos/fman/pull/48))
+
+### Other
+
+- *(deps)* update actions/checkout action to v5 ([#59](https://github.com/ddanielsantos/fman/pull/59))
+- Revert "fix(deps): update rust crate clap to v4.5.28 ([#45](https://github.com/ddanielsantos/fman/pull/45))" ([#50](https://github.com/ddanielsantos/fman/pull/50))
+
 ## [0.1.12](https://github.com/ddanielsantos/fman/compare/v0.1.11...v0.1.12) - 2024-12-16
 
 ### Added
