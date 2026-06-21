@@ -30,7 +30,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v5
       - name: Build project
-        uses: houseabsolute/actions-rust-cross@v0
+        uses: houseabsolute/actions-rust-cross@v1.0.8
         with:
           command: build
           target: ${{ matrix.platform.target }}
